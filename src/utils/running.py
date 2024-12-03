@@ -54,7 +54,8 @@ class Runner():
         to see what is happening without repeating it hundreds of times.
         - For redirect = 2, all prints are saved to a file.
     '''
-    def __init__(self, f, nruns, process_fun = None, redirect = 0):
+    def __init__(self, f, nruns, process_fun = None, redirect = 0, 
+                 silent = False):
         '''
         Untimed: just print the progress bar. 
         '''
@@ -70,13 +71,14 @@ class Runner():
         # If redirect is 1, this will be done only after the second run.
         if redirect == 2:
             self.tofile = PrintsToFile("run_logs")
+        self.silent = silent
         
     def run(self, *args, **kwargs):
         return self.run_timed(*args, **kwargs)
             
     # Can't use decorator because we must need self.nruns for the average.
     def run_timed(self, *args, **kwargs):
-        timer_all = Timer(extra_info = "average per run")
+        timer_all = Timer(extra_info = "average per run", silent = self.silent)
         r = self.run_untimed(*args, **kwargs)
         
         if self.nruns != 0:
@@ -325,49 +327,3 @@ class BAERunData:
         l = len(self.means)
         assert l == len(self.stds) == len(self.CPTs)
         return l
-    
-class TesterQAE():
-    
-    @property
-    def local_a(self):
-        '''
-        For each run, the real amplitude parameter will be 'local_a'.
-
-        The 'a' attribute is always constant, and can hold:
-
-        - A permanent value for 'a'. In that case, all runs will use it;
-        'local_a' is equivalent to 'a'.
-
-        - A tuple. In that case, each run will sample an amplitude at random
-        in the interval given by the tuple.
-        '''
-        if isinstance(self.a, tuple):
-            amin, amax = self.a
-            a = np.random.uniform(amin,amax)
-            print(f"> Sampled a = {a}.")
-            return a
-        else:
-            return self.a
-
-    @property
-    def local_Tc(self):
-        if isinstance(self.Tc, tuple):
-            Tcmin, Tcmax = self.Tc
-            Tc = np.random.uniform(Tcmin,Tcmax)
-            print(f"> Sampled Tc = {Tc}.")
-            return Tc
-        else:
-            return self.Tc
-        
-    @property
-    def param_str(self):
-        a_str = (self.rand_pstr(self.a) if isinstance(self.a,tuple)
-                 else str(self.a))
-        Tc_str = (self.rand_pstr(self.Tc) if isinstance(self.Tc,tuple)
-                 else str(self.Tc))
-        s = f"a={a_str};Tc={Tc_str}"
-        return s
-    
-    @staticmethod
-    def rand_pstr(param):
-        return f"rand[{param[0]},{param[1]}]"

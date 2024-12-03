@@ -8,7 +8,7 @@
     Two testing tools (a function and a class) are included:
     - 'test', which tests single runs of inference with different sampling
     strategies.
-    - 'TestEvolBQAE', which tests multiple runs to get data on the evolution of
+    - 'TestBAE', which tests multiple runs to get data on the evolution of
     the MSE with the number of queries (for plotting).
 
    ============================================================================

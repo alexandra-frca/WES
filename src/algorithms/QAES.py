@@ -15,16 +15,16 @@ import numpy as np
 import importlib
 import sys
 
-from algorithms.QAE import TesterQAE
-from utils.misc import closest_odd_int, expb10, print_centered
+from src.algorithms.QAE import TesterQAE
+from src.utils.misc import closest_odd_int, expb10, print_centered
 from src.utils.mydataclasses import EstimationData, ExecutionData
-from utils.plotting import process_and_plot
-from utils.binning import bin_and_average
-from utils.models import QAEmodel
-from utils.running import ProgressBar
-from utils.files import data_from_file
+from src.utils.plotting import process_and_plot
+from src.utils.binning import bin_and_average
+from src.utils.models import QAEmodel
+from src.utils.running import ProgressBar
+from src.utils.files import data_from_file
 
-reload = True
+reload = False
 if reload:
     importlib.reload(sys.modules["utils.plotting"])
     importlib.reload(sys.modules["utils.models"])
@@ -33,7 +33,7 @@ if reload:
     #importlib.reload(sys.modules["src.utils.mydataclasses"])
 
 class QAES():
-    def __init__(self, M, epsilon, alpha):
+    def __init__(self, M, epsilon, alpha, silent = False):
         self.model = M
         # The constant to divide 'a' by. With this rescaling, theta < 0.001,
         # which is required by the algorithm. We then multiply back. In 
@@ -43,6 +43,7 @@ class QAES():
         
         self.epsilon = epsilon
         self.alpha = alpha
+        self.silent = silent 
         
     def pre_processing(self):
         Nq = 0
@@ -107,11 +108,12 @@ class QAES():
         m = (r-1)/2
         return m
    
-class test_QAES(TesterQAE):
-    def __init__(self, a, Tc, alpha):
+class TestQAES(TesterQAE):
+    def __init__(self, a, Tc, alpha, silent = False):
         self.a = a
         self.Tc = Tc
         self.alpha = alpha
+        self.silent = silent
         
     def final_result(self, epsilon):
         def print_info():
@@ -137,26 +139,27 @@ class test_QAES(TesterQAE):
             # Two stage algorithm, so it must be run once for each query number
             # (no intermediate results).
             M = QAEmodel(a, Tc = Tc)
-            qs = QAES(M, epsilon, self.alpha)
+            qs = QAES(M, epsilon, self.alpha, silent = self.silent)
             Nq, a_est = qs.estimate()
             sqe = (a_est/a-1)**2
             
             nqs.append(Nq)
             sqes.append(sqe)
             
-            epsilon = epsilon*0.8
-        print("sqe", sqe)
-            
+            epsilon = epsilon*0.8    
         return nqs, sqes
     
-    def rmse_evol_multiple(self, reps, epsmin, epsmax, save = True):
+    def sqe_evolution_multiple(self, reps, epsmin, epsmax, save = True):
         def print_info():
             info = ["QAES estimation RMSE scaling"]
             info.append(f"  ε in {{10^{expb10(epsmin)},10^{expb10(epsmax)}}} "
                          f"| α={self.alpha} | a={self.a} ")
             info.append(f"| reps = {reps}")
             print_centered(info)
-        print_info()
+        
+        print("> Will test {reps} runs of 'QAE, simplified'.")
+        if not self.silent:
+            print_info()
         
         pb = ProgressBar(reps)
         nqs_all, sqes_all = [], []
@@ -170,7 +173,7 @@ class test_QAES(TesterQAE):
         except KeyboardInterrupt:
             print(f"\n> Keyboard interrupt at run {i}. "
                       "Will present partial results if possible.")
-            print("> Breaking from cycle... [rmse_evol_multiple]")
+            print("> Breaking from cycle... [sqe_evolution_multiple]")
             reps = i
             
         self.handle_results(nqs_all, sqes_all, reps, epsmin, epsmax, save)
@@ -186,9 +189,9 @@ class test_QAES(TesterQAE):
         if save:
             ed.save_to_file()
        
-        process_and_plot(estdata)
+        process_and_plot(estdata, save = save)
    
-def test_fun(which):
+def test(which):
     if which == 0:
         '''
         Test a single estimation run. 
@@ -196,7 +199,7 @@ def test_fun(which):
         a = 0.34
         epsilon = 1e-5
         alpha = 0.001
-        test = test_QAES(a, alpha)
+        test = TestQAES(a, alpha)
         _, a_est = test.final_result(epsilon)
         print(f"> Estimated a = {round(a_est, -expb10(epsilon)+1)}.")
         rerr = a_est/a-1
@@ -207,15 +210,9 @@ def test_fun(which):
         epsmax = 1e-2
         epsmin = 1e-6
         alpha = 0.05
-        reps = 1
-        test = test_QAES(a, Tc,  alpha)
-        test.rmse_evol_multiple(reps, epsmin, epsmax, save = True)
-    if which==2:
-        '''
-        Upload an ExecutionData instance from a file and plot.
-        '''
-        filename = ('1.QAES_12_09_2022_a=0.5,nruns=100,nshots=NA,eps∈{10^-6,10^-2},alpha=0.001#0.data')
-        ed = data_from_file(filename)
-        plot_err_vs_Nq(ed.estdata, exp_fit = False)
+        runs = 1
+        test = TestQAES(a, Tc,  alpha)
+        test.sqe_evolution_multiple(runs, epsmin, epsmax, save = True)
         
-test_fun(1)
+if __name__ == "__main__":
+    test(1)

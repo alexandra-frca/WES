@@ -26,22 +26,21 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from qiskit.visualization import plot_histogram
+# from qiskit.visualization import plot_histogram
 import scipy.optimize as opt
 # plt.rcParams['figure.dpi'] = 300
 # plt.rcParams['savefig.dpi'] = 300
 import sys
 import importlib
 
-from utils.models import QAEmodel
-from utils.running import ProgressBar
-from utils.files import data_from_file
-from utils.misc import (outcome_dist_to_dict, rem_negligible_items,
+
+from src.utils.running import ProgressBar
+from src.utils.misc import (outcome_dist_to_dict, rem_negligible_items,
                         k_largest_tuples, print_centered, expb10)
-from utils.plotting import barplot_from_data, plot_err_evol
+from src.utils.plotting import barplot_from_data, process_and_plot
 from src.utils.mydataclasses import QAEspecs, EstimationData, ExecutionData
 
-reload = True
+reload = False
 if reload:
     importlib.reload(sys.modules["utils.models"])
 
@@ -127,7 +126,6 @@ class QAEemulator():
         
         if plist is None:
             plist = self.probability_list(self.nshots)
-            
             
         if MLE:
             # Perform MLE on the results.
@@ -232,7 +230,7 @@ class QAEemulator():
         Returns a list of tuples (outcome, probability) with the probability of 
         QAE outputting the binary encoding of 'outcome' given the real phase  
         theta in exp(i*2*theta). If nshots, shot noise is introduced using 
-        multinomial sampling, the probabilities being replaced by numbers of 
+        multinomial sampling, the probabilities are replaced by numbers of 
         occurences. 
         '''
         M = 2**self.m
@@ -330,8 +328,9 @@ class QAEemulator():
             Ls.append(hits*np.log(self.probability_of(o, theta=theta)))
             
         # To avoid VisibleDeprecationWarning.
-        Ls = np.array(Ls, dtype=object)
-        L = np.sum(Ls)
+        # Ls = np.array(Ls)#, dtype=object)
+        # L = np.sum(Ls)
+        L = sum(Ls)
         if not log:
             L = np.exp(L)
         return L
@@ -410,10 +409,11 @@ class QAEemulator():
         return m_closest
     
 class TestQAE():
-    def __init__(self, a, m, nshots):
+    def __init__(self, a, m, nshots, silent = False):
         self.a = a
         self.m = m
         self.nshots = nshots
+        self.silent = silent
                 
     def estimation(self, MLE, complementary = False):
         '''
@@ -463,7 +463,7 @@ class TestQAE():
             QAEe.clean_graph()
             QAEe.barplot_and_likelihood(log = True, plist=plist)
             
-    def rmse_evolution(self, mmin, Nq_target, nruns, MLE = True, save = True):
+    def sqe_evolution_multiple(self, mmin, Nq_target, nruns, MLE = True, save = True):
         '''
         Run canonical QAE (eventually enhanced with MLE) several times for each
         'm' in a sequence of 'ms', to get the root mean square error (RMSE) as
@@ -486,16 +486,19 @@ class TestQAE():
         assert mmin>0, "non-positive number of qubits makes no sense"
         
         mmax = QAEemulator.m_from_Nq(Nq_target, self.nshots)
-        print_info()
+        print("> Will test {nruns} runs of 'canonical QAE'.")
+        if not self.silent:
+            print_info()
         
         ms = list(range(mmin,mmax+1, 2))
-        nqs, rmses = [QAEemulator.Nq_from_m(m, self.nshots) for m in ms], []
+        nqs = [QAEemulator.Nq_from_m(m, self.nshots) for m in ms]
+        sqe_by_step = []
         for m in ms:
             try:
                 self.m = m
                 print(f"> Testing {nruns} runs of QAE with m={self.m}...")
-                rmse = self.rmse_given_m(nruns, MLE)
-                rmses.append(rmse)
+                sqes = self.sqes_given_m(nruns, MLE)
+                sqe_by_step.append(sqes)
             except KeyboardInterrupt:
                 print(f"\n> Keyboard interrupt at m={m}. "
                       "Will present partial results if possible.")
@@ -507,7 +510,7 @@ class TestQAE():
             return
         
         estdata = EstimationData()
-        estdata.add_data("canonical", nqs = nqs, lbs = None, errs = rmses)
+        estdata.add_data("canonical", nqs = nqs, lbs = None, errs = sqe_by_step)
         ed = ExecutionData(self.a, estdata, nruns, self.nshots, 
                            label = "canonical_QAE_"
                            f"{'MLE' if MLE else 'conv'}_multiple",
@@ -515,13 +518,16 @@ class TestQAE():
         if save:
             ed.save_to_file()
             
-        if all([e==0 for e in rmses]):
+        if all([e==0 for e in sqes]):
             print("> All errors are 0, so no plots for you! I would guess you "
                   "ran an exact case of conventional QAE, e.g. a=0.5 for m>1.")
         else:
-            plot_err_evol("RMSE", estdata, exp_fit = False)
+            process_and_plot(estdata, processing = "averaging2", save = save)
+            # plot_err_evol("RMSE", estdata, exp_fit = False)
     
-    def rmse_given_m(self, nruns, MLE):
+
+    
+    def sqes_given_m(self, nruns, MLE):
         '''
         Run canonical QAE (eventually enhanced with MLE) several times for 
         fixed 'm' (the current self.m), to get the root mean squared error.
@@ -529,7 +535,7 @@ class TestQAE():
         If self.a is 'rand', the amplitude is picked at random. If not, self.a
         is used direcly.
         '''
-        sqerrs = [] 
+        sqes = [] 
         pb = ProgressBar(nruns)
         for i in range(nruns):
             pb.update()
@@ -540,10 +546,10 @@ class TestQAE():
             # MLE = QAEe.barplot_and_likelihood(log=True, ret ="MLE")
             a_est = QAEe.estimate(MLE = MLE)
             sqe = (a_est/a-1)**2
-            sqerrs.append(sqe)
+            # print("as", a_est, a, sqe)
+            sqes.append(sqe)
             
-        rmse = np.median(sqerrs)**0.5
-        return rmse
+        return sqes
     
     @property
     def local_a(self):
@@ -558,10 +564,12 @@ class TestQAE():
         - The string "rand". In that case, each run will sample an amplitude
         at random, which in general will differ between runs. 
         '''
-        if self.a=="rand":
-            return np.random.uniform(0, 1)
+        if isinstance(self.a, tuple):
+            amin, amax = self.a
+            a = np.random.uniform(amin,amax)
         else:
-            return self.a
+            a = self.a
+        return a
 
 def test(which):
     if which==0:
@@ -622,22 +630,12 @@ def test(which):
         Plot the scaling of the estimation errors with the number of queries.
         '''
         # a can be a float, or 'rand' for picking 'a' at random for each run.
-        a = "rand"
-        mmin = 1
+        a = (0,1)
+        mmin = 2
         Nq_target = 10**6
         nruns = 100
         nshots = 100
         Test = TestQAE(a, mmin, nshots)
-        Test.rmse_evolution(mmin, Nq_target, nruns, MLE = True, save = True)
-    elif which==6:
-        '''
-        Upload an ExecutionData instance from a file. Plot the scaling of the
-        estimation error with the number of queries.
-        '''
-        filename = ('1.canonical_QAE_MLE_multiple_04_08_2022_a=0.5,'
-                    'nruns=100,nshots=100,m={5..12}#0.data')
-        ed = data_from_file(filename)
-        plot_err_vs_Nq(ed.estdata)
+        Test.sqe_evolution_multiple(mmin, Nq_target, nruns, MLE = True, save = True)
         
 test(5)
-# USING MEDIAN

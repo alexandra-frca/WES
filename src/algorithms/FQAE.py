@@ -164,8 +164,7 @@ class TestFQAE(TesterQAE):
     def sqe_evolution_multiple(self, nruns, kmax_start, kmax_end, 
                                save = True):
 
-        print(f"> Will test {nruns} runs of 'Faster QAE'. Printing info for"
-              " 1st run's 1st kmax only.")
+        print(f"> Will test {nruns} runs of 'Faster QAE'.")
         nqs_all = []
         sqes_all = []
         pb = ProgressBar(nruns)
@@ -200,7 +199,7 @@ class TestFQAE(TesterQAE):
         if save:
             ed.save_to_file()
             
-        process_and_plot(raw_estdata)
+        process_and_plot(raw_estdata, save = save)
     
 def test_fun(which):
     if which == 0:

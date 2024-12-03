@@ -1,11 +1,13 @@
 import numpy as np
 
+# import sys
+# sys.path.append("/home/aramoa/BAE/")
 import matplotlib.pyplot as plt
 from src.algorithms.BAE import BAE
 from src.algorithms.samplers import get_sampler
 from src.utils.models import QAEmodel
 from src.utils.plotting import process_and_plot, sqe_evol_from_file, plot_single_run
-from src.utils.mydataclasses import EstimationData, ExecutionData, join_estdata_files
+from src.utils.dataclasses import EstimationData, ExecutionData, join_estdata_files
 from src.utils.misc import (print_centered, dict_str, sigdecstr, k_largest_tuples, 
                         k_smallest_tuples, b10str, dict_info, lprint)
 from src.utils.running import Runner, BAERunsData
@@ -71,20 +73,20 @@ class TestEvolBQAE():
         else:
             return self.Tc
 
-    def sqe_evolution_multiple(self, nruns, save = True):
+    def sqe_evolution_multiple(self, Nruns, dummy_data = False, save = True):
         '''
         Gets the evolution of the squared error with the iteration number, for
         multiple runs. All the data is joined together in a non-nested list,
         because what matters is the order. e.g.
 
-        nqs_1 = [1, 3] | sqes_1 = [A1, B1]
-        nqs_2 = [2, 5] | sqes_2 = [A2, B2]
-        -> nqs_all = [1, 3, 2, 5] | sqes_all = [A1, B1, A2, B2]
+        Nqs_1 = [1, 3] | sqes_1 = [A1, B1]
+        Nqs_2 = [2, 5] | sqes_2 = [A2, B2]
+        -> Nqs_all = [1, 3, 2, 5] | sqes_all = [A1, B1, A2, B2]
 
         The results are then processed to get working averages (obtained by
-        binning the nqs and averaging both them and the associated sqes within
+        binning the Nqs and averaging both them and the associated sqes within
         bins) and plotted. Straightforward averaging cannot be done because the
-        nqs are not constant among runs, even for the same iteration.
+        Nqs are not constant among runs, even for the same iteration.
 
         Also, the square root is taken when processing. The reason we don't
         use the RMSE from the outset is that we may want to do calculations
@@ -96,8 +98,8 @@ class TestEvolBQAE():
             info.append("- scaling of the estimation error with Nq")
 
             info.append("\n~ Exec details ~")
-            info.append(f"{self.param_str()} | runs = {nruns} | "
-                        f"nqs/PT = {b10str(self.maxPT)}")
+            info.append(f"{self.param_str()} | runs = {Nruns} | "
+                        f"Nqs/PT = {b10str(self.maxPT)}")
 
             info.append("\n~ Strategy ~")
             info.append(dict_info(self.strat, sep = " |"))
@@ -109,18 +111,24 @@ class TestEvolBQAE():
             info.append(dict_info(self.Tc_opts, sep = " |"))
 
             print_centered(info)
+            pass
 
         print_info()
-        rdata = BAERunsData()
-        runner = Runner(f = self.sqe_evolution, nruns = nruns,
-                        process_fun = rdata.add_run_data, redirect = 0)
 
-        nruns = runner.run()
+        if dummy_data:
+            # Broke this with new dataclass BAERunsData.
+            sqes_w, Nqs, sqes = self.create_dummy_data()
+        else:
+            rdata = BAERunsData()
+            runner = Runner(f = self.sqe_evolution, Nruns = Nruns,
+                            process_fun = rdata.add_run_data, redirect = 0)
 
-        full, final = rdata.get_lists()
-        _, final_dscr = rdata.get_descriptors()
+            Nruns = runner.run()
 
-        if nruns == 0:
+            full, final = rdata.get_lists()
+            _, final_dscr = rdata.get_descriptors()
+
+        if Nruns == 0:
             return 
         
         self.print_stats_several(final, final_dscr)
@@ -128,7 +136,7 @@ class TestEvolBQAE():
         process_and_plot(raw_estdata)
 
         if save:
-            exdata = self.create_execdata(raw_estdata, nruns)
+            exdata = self.create_execdata(raw_estdata, Nruns)
             exdata.save_to_file()
 
     def sqe_evolution(self, i):
@@ -151,7 +159,7 @@ class TestEvolBQAE():
 
         Est = BAE(M, Tc_precalc, self.Tcrange)
         sampler = get_sampler(self.sampler_str, M, self.sampler_kwargs)
-        means, stds, nqs = Est.adapt_inference(sampler, self.strat,
+        means, stds, Nqs = Est.adapt_inference(sampler, self.strat,
                                                maxPT = self.maxPT)
         nsqes = [(est/a - 1)**2 for est in means]
         nstds = [sqe/mean for sqe,mean in zip(stds, means)]
@@ -162,22 +170,22 @@ class TestEvolBQAE():
             print("> Larger than 1e-4!")
             el, rl, accl = Est.exp_list, sampler.resampled_list, sampler.acc_rates
             essl = [ess/sampler.Npart for ess in sampler.ess_list]
-            self.show_single_run(sampler, nqs, nstds, nsqes, el, rl, accl, essl,
+            self.show_single_run(sampler, Nqs, nstds, nsqes, el, rl, accl, essl,
                                  f"run {i} (bad)")
 
-        return nqs, nsqes, nstds
+        return Nqs, nsqes, nstds
     
-    def show_single_run(self, sampler, nqs, nstds, nsqes, el, rl, accl, essl, 
+    def show_single_run(self, sampler, Nqs, nstds, nsqes, el, rl, accl, essl, 
                         title):
-        nerrs = [nsqe**0.5 for nsqe in nsqes]
-        plot_single_run(nqs, nstds, nerrs, rl, self.strat["wNs"], 
-                        self.strat["Ns"], el,  accl, essl, title = title)
-        plt.show()
+            nerrs = [nsqe**0.5 for nsqe in nsqes]
+            plot_single_run(Nqs, nstds, nerrs, rl, self.strat["wNs"], 
+                            self.strat["Ns"], el,  accl, essl, title = title)
+            plt.show()
 
-        print("> Expanded at iterations: ", end = "")
-        lprint(el)
-        sampler.print_lists()
-        sampler.plot_particles(ttl_xtra = f"- {title}")
+            print("> Expanded at iterations: ", end = "")
+            lprint(el)
+            sampler.print_lists()
+            sampler.plot_particles(ttl_xtra = f"- {title}")
 
 
     def print_stats_several(self, ls, dscrs):
@@ -202,16 +210,16 @@ class TestEvolBQAE():
             print(f"> 3 smallest {dscr}s: ", k_smallest_tuples(lenum, 3,
                                                                sortby = 1))
 
-    def create_estdata(self, nqs, sqes, stds):
+    def create_estdata(self, Nqs, sqes, stds):
         '''
         Organize information into a EstimationData object.
         '''
         raw_estdata = EstimationData()
-        raw_estdata.add_data("BAE", nqs = nqs, lbs = None, errs = sqes,
+        raw_estdata.add_data("BAE", Nqs = Nqs, lbs = None, errs = sqes,
                              stds = stds)
         return raw_estdata
 
-    def create_execdata(self, raw_estdata, nruns):
+    def create_execdata(self, raw_estdata, Nruns):
         '''
         Organize information into a ExecutionData object.
         '''
@@ -220,7 +228,7 @@ class TestEvolBQAE():
         strat_info = f"STRAT=({dict_str(self.strat)})"
         extra = f"{strat_info},{sampler_info}"
         Ns = (self.strat["wNs"], self.strat["Ns"])
-        exdata = ExecutionData(self.param_str(), raw_estdata, nruns,
+        exdata = ExecutionData(self.param_str(), raw_estdata, Nruns,
                                Ns, label="BQAE",
                                extra_info = extra)
         return exdata
@@ -231,34 +239,31 @@ class TestEvolBQAE():
         '''
 
         print("> USING DUMMY DATA.")
-        Nq_warmup = self.strat["wNs"]
-        nqs_all = np.linspace(Nq_warmup, self.maxPT, 100)
-        sqes_all = 10/nqs_all
+        Nq_warmup = self.Ns_tuple[0]
+        Nqs_all = np.linspace(Nq_warmup, self.maxPT, 100)
+        sqes_all = 10/Nqs_all
 
         # Add some noise to make the runs distinguishable.
         sqes_all = [np.random.uniform(0.5, 1.5)*sqe for sqe in sqes_all]
 
         sqes_warmup = [sqes_all[0]]
-        return sqes_warmup, nqs_all, sqes_all
+        return sqes_warmup, Nqs_all, sqes_all
 
 def test_evol(which):
-    '''
-    For which == 1, test multiple runs of Bayesian adaptive QAE and plot the 
-    RMSE as a function of the number of queries.
-
-    For which == 2, upload dataset from a file.
-    
-    For which == 2, upload dataset from multiple files.
-    '''
     if which == 1:
-        # If a is a tuple, it's picked at random from the interval for each run. 
-        # If it is a number, it will be used direcly.
+        '''
+        Test multiple runs of Bayesian adaptive QAE, and plot the RMSE as a
+        function of the number of queries.
+        '''
+        # If a is a tuple, a float will be picked at random from the interval
+        # for each run. If it is a number, it will be exused direcly.
+        # global Tcmax
 
         Tcrange = None # (2000, 5000)
         a = (0,1)  # 0.4099468964544807 # (0, 1)
         Tc = Tcrange # 208.89401214021166 # Tcrange # 2000
-        maxPT = 2*10**6
-        nruns = 1
+        maxPT = 10**7
+        Nruns = 100
         sampler_str = "RWM"
 
 
@@ -268,10 +273,10 @@ def test_evol(which):
                     "range": Tcrange}
 
         # Strategy for the adaptive optimization.
-        strat = {"wNs": 10,
-                  "Ns": 1,
+        strat = {"wNs": 100,
+                  "Ns": 10,
                   "TNs": 500,
-                  "k": 2,
+                  "k": 1,
                   "Nevals": 50,
                   "erefs": 3,
                   "ethr": 3,
@@ -293,11 +298,17 @@ def test_evol(which):
         Test = TestEvolBQAE(a, Tc_opts, strat, maxPT, sampler_str,
                             sampler_kwargs)
 
-        Test.sqe_evolution_multiple(nruns, save = True)
+        Test.sqe_evolution_multiple(Nruns, save = True)
     elif which == 2:
-        filename = "BQAE_21_03_2024_19_55_a=rand[0,1];Tc=None,nruns=100,nshots=(100, 1),STRAT=(wnshots=100,factor=1,Nevals=50,exp_refs=3,exp_thr=3,cap=True,capk=1.5),RWM(Npart=2000,thr=0.5,var=theta,ut=var,plot=False,factor=1)#0.data"
+        '''
+        Upload dataset from one file.
+        '''
+        filename = "BQAE_21_03_2024_19_55_a=rand[0,1];Tc=None,Nruns=100,Nshots=(100, 1),STRAT=(wNshots=100,factor=1,Nevals=50,exp_refs=3,exp_thr=3,cap=True,capk=1.5),RWM(Npart=2000,thr=0.5,var=theta,ut=var,plot=False,factor=1)#0.data"
         sqe_evol_from_file(filename)
     elif which == 3:
+        '''
+        Upload dataset from multiple files.
+        '''
         filestart = ("adaptive_QAE_05_07_2022[LW,Nsmeas=(1,inf),Nsshots=(100,1),"
                      "Npart=1000,runs=5]")
         save = False

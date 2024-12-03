@@ -327,13 +327,14 @@ class IQAE:
         return Lmax
     
 class TestIQAE(TesterQAE):
-    def __init__(self, a, Tc, nshots, alpha, modified, ci):
+    def __init__(self, a, Tc, nshots, alpha, modified, ci, silent = False):
         self.a = a
         self.Tc = Tc
         self.nshots = nshots
         self.alpha = alpha
         self.modified = modified
         self.ci = ci
+        self.silent = silent
         
     def single_run(self, epsilon):
         model = QAEmodel(self.a)
@@ -345,7 +346,8 @@ class TestIQAE(TesterQAE):
         sqes = []
         epsilon = eps_start
         while epsilon > eps_end:
-            a = self.local_a; Tc = self.local_Tc
+            a = self.local_a
+            Tc = self.local_Tc
             model =  QAEmodel(a, Tc = Tc)
             
             # Only not silent for the first iteration otherwise it's too much.
@@ -367,8 +369,7 @@ class TestIQAE(TesterQAE):
             process_and_plot(estdata)
         return nqs, sqes
     
-    def sqe_evolution_multiple(self, nruns, eps_start, eps_end, save = True,
-                               silent = True):
+    def sqe_evolution_multiple(self, nruns, eps_start, eps_end, save = True):
 
         print(f"> Will test {nruns} runs of 'Iterative QAE'.")
         nqs_all = []
@@ -378,7 +379,8 @@ class TestIQAE(TesterQAE):
             pb.update()
             try:
                 nqs, sqes = self.sqe_evolution(eps_start, eps_end, 
-                                               silent = silent if i==0 else True, 
+                                               silent = self.silent \
+                                                if i==0 else True, 
                                                plot = False)
                 
                 nqs_all.extend(nqs)
@@ -407,7 +409,7 @@ class TestIQAE(TesterQAE):
 
         process_and_plot(raw_estdata, save = save)
      
-def test_fun(which):
+def test(which):
     ci = "chernoff"
     modified = False
     if which == 0:
@@ -439,15 +441,9 @@ def test_fun(which):
         alpha = 0.05
         nshots = 100
         eps_start, eps_end = 1e-1, 4e-7
-        test = TestIQAE(a, Tc, nshots, alpha, modified, ci)
+        test = TestIQAE(a, Tc, nshots, alpha, modified, ci, silent = True)
         nruns = int(1e2)
-        test.sqe_evolution_multiple(nruns, eps_start, eps_end, save = True, 
-                                    silent = True)
-    if which == 3:
-        '''
-        Upload data from file.
-        '''
-        filename = "IQAE_cher_29_09_2022_a=0.5,nruns=100,nshots=100,eps≈{10^-1..10^-7},alpha=0.05#2.data"
-        sqe_evol_from_file(filename, preprocessed = True, label = "IQAE - chernoff")
-        
-test_fun(2)
+        test.sqe_evolution_multiple(nruns, eps_start, eps_end, save = True)
+
+if __name__ == "__main__": 
+    test(2)

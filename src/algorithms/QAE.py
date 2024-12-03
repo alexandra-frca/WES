@@ -184,7 +184,8 @@ class QAE(QAA):
         
 first_BayesianQAE = True
 class BayesianQAE(QAA):     
-    def maximize_likelihood(self, ms, hs, finish = True, evals = 1e3):
+    def maximize_likelihood(self, ms, hs, finish = True, evals = 1e3,
+                            silent = False):
         def objective_function(theta):
             # For scipy.optimize.brute, the objective function must have the 
             # free parameter as first argument, and the target should be the
@@ -192,7 +193,7 @@ class BayesianQAE(QAA):
             # has some numerical advantages.
             return -self.loglikelihood(theta, ms, hs)
         global first_maximize_likelihood
-        if first_maximize_likelihood:
+        if first_maximize_likelihood and not silent:
             print(f"> Using brute force optimization on {int(round(evals))} "
             "grid points " + ("+ Nelder-Mead " if finish else "") 
             + "for finding the MLE. [BayesianQAE.maximize_likelihood]")
@@ -381,7 +382,7 @@ class TesterQAE():
         if isinstance(self.Tc, tuple):
             Tcmin, Tcmax = self.Tc
             Tc = np.random.uniform(Tcmin,Tcmax)
-            print(f"> Sampled Tc = {Tc}.")
+            # print(f"> Sampled Tc = {Tc}.")
             return Tc
         else:
             return self.Tc

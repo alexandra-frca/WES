@@ -255,15 +255,21 @@ def closest_odd_int(x):
         xr = xr - np.sign(xr-x)
     return xr
 
-def estimation_errors(sqe_by_run, stat):
+def estimation_errors(sqe_lists, stat, by_step = False):
     '''
+    If by_step is False:
     Calculate the average estimation error sqrt(MSE) ordered by step, given
     a list of squared error evolutions ordered by run.
-    sqe_by_run[i]: list with the squared errors of run #i, ordered by step.
+    sqe_lists[i]: list with the squared errors of run #i, ordered by step.
     sqe_by_step[i]: list with the errors of step #i, ordered by run.
+
+    Otherwise:
+    sqe_lists is sqe_by_step already
     '''
-    # sqe_by_step[i]: list with the errors of step #i, ordered by run.
-    sqe_by_step = list(zip(*sqe_by_run))
+    if not by_step:
+        sqe_by_step = list(zip(*sqe_lists))
+    else:
+        sqe_by_step = sqe_lists
     # Estimation error ε = E[(â-a)^2]^0.5
 
     if stat == "mean":
@@ -273,7 +279,6 @@ def estimation_errors(sqe_by_run, stat):
         
     err_per_step = [np.sqrt(f(step_errors))
                             for step_errors in sqe_by_step]
-    
     return err_per_step
 
 def print_centered(slist, w = 62):

@@ -164,19 +164,21 @@ class SQAE:
         
     
 class TestSQAE(TesterQAE):
-    def __init__(self, a, Tc, nshots, formula, threshold):
+    def __init__(self, a, Tc, nshots, formula, threshold, silent = False):
         self.a = a
         self.Tc = Tc
         self.nshots = nshots
         self.formula = formula
         self.threshold = threshold
+        self.silent = silent
         
     def single_run(self):
-        sq = SQAE(self.theta, self.nshots, self.formula, self.threshold)
+        sq = SQAE(self.theta, self.nshots, self.formula, self.threshold, 
+                  self.silent)
         Nq, err = sq.estimate()
         return Nq, err
         
-    def sqe_evolution(self, Nq_start, Nq_target, silent, plot = True):
+    def sqe_evolution(self, Nq_start, Nq_target, plot = True):
         nqs = []
         sqes = []
         
@@ -188,7 +190,8 @@ class TestSQAE(TesterQAE):
             
             nshots = SQAE.nshots_from_Nq_noiseless(a, Nq_curr_target)
             sq = SQAE(M, nshots, self.formula, self.threshold,
-                      silent = silent if Nq_curr_target == Nq_start else True)
+                      silent = self.silent if Nq_curr_target == Nq_start \
+                        else True)
             Nq_actual, a_est = sq.estimate()
             
             nqs.append(Nq_actual)
@@ -206,8 +209,7 @@ class TestSQAE(TesterQAE):
     
     def sqe_evolution_multiple(self, nruns, Nq_start, Nq_target, save = True):
 
-        print(f"> Will test {nruns} runs of 'Simpler QAE'. Presenting 1st run "
-              "data screen only.")
+        print(f"> Will test {nruns} runs of 'Simpler QAE'.")
         nqs_all = []
         sqes_all = []
         pb = ProgressBar(nruns)
@@ -215,7 +217,6 @@ class TestSQAE(TesterQAE):
             pb.update()
             try:
                 nqs, sqes = self.sqe_evolution(Nq_start, Nq_target, 
-                                               silent = False if i==0 else True, 
                                                plot = False)
     
                 nqs_all.extend(nqs)
@@ -239,7 +240,7 @@ class TestSQAE(TesterQAE):
         if save:
             ed.save_to_file()
         
-        process_and_plot(estdata)
+        process_and_plot(estdata, save = save)
         self.print_info()
         
     def print_info(self):
@@ -251,7 +252,8 @@ class TestSQAE(TesterQAE):
         if not isinstance(self.a, tuple):
             info.append(f"Noiseless Nq would be: SQAE.Nqueries_noiseless(self.a, self.nshots)")
             
-        print_centered(info)
+        if not self.silent:
+            print_centered(info)
         
 def test(which):
     a = (0,1)
@@ -259,7 +261,7 @@ def test(which):
     nshots = 100
     formula = 2
     threshold = 0.5
-    test = TestSQAE(a, Tc, nshots, formula, threshold)
+    test = TestSQAE(a, Tc, nshots, formula, threshold, silent = False)
     
     if which == 0:
         test.single_run()
@@ -272,12 +274,6 @@ def test(which):
         Nq_start = 500
         Nq_target = 10**10
         test.sqe_evolution_multiple(nruns, Nq_start, Nq_target)  
-    if which==3:
-        '''
-        Upload an ExecutionData instance from a file and plot.
-        '''
-        filename = ('3.SQAE_f1_26_08_2022_a=rand,nruns=8000000,nshots=100,Nq≈{10^2..10^7},thr=0.5#0.data')
-        ed = data_from_file(filename)
-        plot_err_vs_Nq(ed.estdata, exp_fit = False)
 
-test(2)
+if __name__ == "__main__": 
+    test(2)

@@ -8,7 +8,7 @@
     Two testing tools (a function and a class) are included:
     - 'test', which tests single runs of inference with different sampling
     strategies.
-    - 'TestEvolBQAE', which tests multiple runs to get data on the evolution of
+    - 'TestBAE', which tests multiple runs to get data on the evolution of
     the MSE with the number of queries (for plotting).
 
    ============================================================================
@@ -419,7 +419,7 @@ class ParameterEstimation():
         return info
 
 
-class TestEvolBQAE():
+class TestBAE():
 
     def __init__(self, a, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs):
         self.a = a
@@ -662,7 +662,7 @@ def test_evol(which):
         if sampler_str=="LW":
             sampler_kwargs["a_LW"] = 0.98
 
-        Test = TestEvolBQAE(a, Tc_opts, strat, maxPT, sampler_str,
+        Test = TestBAE(a, Tc_opts, strat, maxPT, sampler_str,
                             sampler_kwargs)
 
         Test.sqe_evolution_multiple(nruns, save = False)

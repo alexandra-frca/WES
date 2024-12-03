@@ -200,21 +200,21 @@ def average_first_N(l, N):
     l = [m] + l[N:]
     return l
 
-def process_and_plot(raw_estdata, save = True,processing = "binning",
+def process_and_plot(raw_estdata, save = True, processing = "binning",
                      stats = ["mean", "median"], title = None):
     '''
     Up to 2 plots: one with the root mean squared error, one with the median
     error (in separate graphs).
     '''
-    assert processing in ["binning", "averaging", "none"]
+    assert processing in ["binning", "averaging", "averaging2", "none"]
     for stat in stats:
         estdata = process(raw_estdata, stat, processing)
         plot_est_evol(estdata, save = save, stat = stat, exp_fit = False, 
                       title = title)
     return estdata
-        
+
 def process(raw_estdata, stat, how = "binning"):
-    assert how in ["binning", "averaging", "none"], how
+    assert how in ["binning", "averaging", "averaging2", "none"], how
     if how == "binning":
         try:
             estdata = process_raw_estdata(raw_estdata, stat = stat)
@@ -224,6 +224,8 @@ def process(raw_estdata, stat, how = "binning"):
             estdata = raw_estdata
     if how == "averaging":
         estdata = process_nonadapt_data(raw_estdata, stat = stat)
+    if how == "averaging2":
+        estdata = process_nonadapt_data(raw_estdata, by_step = True, stat = stat)
     if how == "none":
         estdata = raw_estdata
     return estdata
@@ -478,8 +480,8 @@ def plot_limits(Nq_dict, err_dict, ax, yintercept, label):
     # Do fits for other datasets if they exist, to print the fit parameters.
     for key in keys:
         if key!= ref_key:
-            print(f"> Fitting parameters for {key}...")
-            power_fit(Nq_dict[key], err_dict[key], label)
+            # print(f"> Fitting parameters for {key}...")
+            power_fit(Nq_dict[key], err_dict[key], f"{key} {label}")
     
     for bound in bounds:
         power = -0.5 if bound=="sql" else -1
@@ -624,14 +626,22 @@ def sqe_evol_from_file(filename):
     estdata = data_from_file(filename).estdata
     process_and_plot(estdata)
     
-def process_nonadapt_data(raw_estdata, stat, every = 2):
+
+
+def process_nonadapt_data(raw_estdata, stat, by_step = False, every = 2):
+    '''
+    by_step: whether the data is ordered already by step (each element is a list
+    of errors for multiple runs for a fixed step/Nq) or not (each element is a
+    list of errors foor multiple steps for a fixed run).
+    '''
     # Same x values across all runs. 
     keys = list(raw_estdata.Nq_dict.keys())
     estdata = deepcopy(raw_estdata)
     
     for key in keys:
-        sqe_by_run = raw_estdata.err_dict[key]
-        err_per_step = estimation_errors(sqe_by_run, stat = stat)
+        sqe_list = raw_estdata.err_dict[key]
+        err_per_step = estimation_errors(sqe_list, stat = stat, 
+                                         by_step = by_step)
         estdata.err_dict[key] = err_per_step #thin_list(err_per_step, 10)
         # estdata.Nq_dict[key] = thin_list(estdata.Nq_dict[key], 10)
     

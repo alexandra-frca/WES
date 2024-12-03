@@ -43,13 +43,12 @@ except ModuleNotFoundError:
      using_colab = False
 
 from src.algorithms.QAA import CheckingFunction
-from src.algorithms.QAE import BayesianQAE
+from src.algorithms.QAE import BayesianQAE, TesterQAE
 from src.utils.mydataclasses import EstimationData, ExecutionData
-from src.utils.plotting import plot_est_evol, process_and_plot, sqe_evol_from_file
-from src.utils.misc import single_warning, print_centered, estimation_errors, logspace
-from src.utils.running import ProgressBar, TesterQAE
+from src.utils.plotting import process_and_plot
+from src.utils.misc import single_warning, print_centered, logspace
+from src.utils.running import ProgressBar
 from src.utils.models import QAEmodel
-from src.utils.files import data_from_file
 
 reload = False
 if reload:
@@ -57,9 +56,6 @@ if reload:
 
 # Number of decimal cases to be used when printing estimates.
 ndigits = 5
-
-np.seterrcall(single_warning)
-np.seterr(divide='call')
 
 class MLQAE(BayesianQAE):
     '''
@@ -122,11 +118,9 @@ class MLQAE(BayesianQAE):
         self.nshots = nshots
         self.seq = seq
         self.evals = MLQAE.def_evals(self.seq, self.Ncircs)
-        # print(evals[-1]+1)
-        
+        self.silent = silent
 
         self.ms = self.coefs_sequence(seq, Ncircs, self.evals)
-        # print("coefs ms", self.evals, self.ms)
         self.Nq_calc = Nq_calc
         if not silent:
             nqstr = "cumulative" if Nq_calc=="cumul" else "sequential max"
@@ -155,17 +149,18 @@ class MLQAE(BayesianQAE):
         if seq=="LIS":
             # Need to evaluate all integer ms up to maximum.
             ms = [k for k in range(evals[-1]+1)]
-            # print("evals", evals[-1]+1)
         if seq=="EIS":
             ms = [0] + [2**k for k in evals[:-1]]
         return ms
     
-    def maximize_likelihood(self, hs, finish = True, evals = 5e3, excfrom = None):
+    def maximize_likelihood(self, hs, finish = True, evals = 5e3, 
+                            excfrom = None, silent = True):
         # excfrom - exclude from (element and following ones).
         # print("ms hs 2", self.ms[:excfrom], hs[:excfrom])
         # print("cms", self.ms[:excfrom])
-        return super().maximize_likelihood(self.ms[:excfrom], hs[:excfrom], finish = True, 
-                                           evals = evals)
+        return super().maximize_likelihood(self.ms[:excfrom], hs[:excfrom], 
+                                           finish = True, evals = evals,
+                                           silent = silent)
         
     def estimate_amplitude(self, model = None, allsteps = False, 
                            show = False, silent = False):
@@ -197,23 +192,8 @@ class MLQAE(BayesianQAE):
                 
             theta_ests = [self.maximize_likelihood(hs, excfrom = k+1)
                           for k in self.evals] 
-            '''
-            self.ms = [0] + [2**k for k in range(13)]
-            hs = [model.measure(m, self.nshots) for m in self.ms]
-            print("ms hs 1", self.ms, hs)
-            theta_est = self.maximize_likelihood(hs)
             
-            a_est = np.sin(theta_est)**2
-            print("HERE", a_est)
-            input()
-            '''
-
-            # print("all ms", self.ms)
-            # print([k for k in self.evals-1])
-            # print("ms", [self.ms[k] for k in self.evals])
-
             a_ests = [np.sin(theta_est)**2 for theta_est in theta_ests]
-            # print("ms", [self.ms[k] for k in range(self.Ncircs)])
             theta_est, a_est = theta_ests[-1], a_ests[-1]
         
         if not silent:
@@ -286,7 +266,6 @@ class MLQAE(BayesianQAE):
         return Fi
     
     def Nqueries_evol(self):
-        # print("here", [self.ms[:k+1] for k in self.evals])
         nqs = [self.Nqueries_from_ms(self.ms[:k+1], self.nshots, 
                                      self.Nq_calc) for k in self.evals]
         return nqs
@@ -333,7 +312,7 @@ class MLQAE(BayesianQAE):
                               atol = atol, title = title, xlabel=xlabel, 
                               ylabel=ylabel)
 
-class test_MLQAEc(TesterQAE):
+class TestMLQAE(TesterQAE):
     '''
     For 'final_result()', a must be a float. For other functions, it can be 
     "rand"; in that case, it will be picked at random. 
@@ -341,15 +320,23 @@ class test_MLQAEc(TesterQAE):
     The two stand-alone (non auxiliary) methods are:
     - final_result: runs QAE once for a given 'a' and shows the results: 
     likelihoods plots and numerical results.
-    - rmse_evolution_both: gets estimation errors by averaging over as many 
+    - sqe_evolution_multiple: gets estimation errors by averaging over as many 
     runs as wished, with fixed or random 'a'. Can do "LIS", "EIS", or both. 
     '''
-    def __init__(self, a, Tc, nshots,  Ncircs = None, Nq_calc = "cumul"):
-       self.a = a
-       self.Tc = Tc
-       self.nshots = nshots
-       self.Ncircs = Ncircs
-       self.Nq_calc = Nq_calc
+    def __init__(self, a, Tc, nshots,  Ncircs = None, Nq_calc = "cumul",
+                 silent = False):
+        self.a = a
+        self.Tc = Tc
+        self.nshots = nshots
+        self.Ncircs = Ncircs
+        self.Nq_calc = Nq_calc
+        self.silent = silent
+        if silent:
+            # log(0) may occur, but it's fine to ignore.
+            np.seterr(divide='ignore')
+        else:
+            np.seterrcall(single_warning)
+            np.seterr(divide='call')
        
     def final_result(self, Ncircs, seq, n = None, t = None, simulator = True):
         '''
@@ -366,7 +353,8 @@ class test_MLQAEc(TesterQAE):
             
         # Checking function only needed if actually using the Qiskit simulator.
         f = CheckingFunction(n,t,silent=True) if simulator else None
-        MLQAE_instance = MLQAE(n, f, self.Ncircs, self.nshots, seq = seq)
+        MLQAE_instance = MLQAE(n, f, self.Ncircs, self.nshots, seq = seq,
+                               silent = self.silent)
         
         if simulator:
             MLQAE_instance.estimate_amplitude(show = True)
@@ -376,7 +364,7 @@ class test_MLQAEc(TesterQAE):
     def print_final_result_info(self, seq, n, t):
         print("> Will test maximum likelihood quantum amplitude estimation "
               "(without QPE), and present the estimation results and likelihood "
-              f"plots. Strategy for the Grover applications: {seq}. [test_MLQAE]")
+              f"plots. Strategy for the Grover applications: {seq}. [TestMLQAE]")
         
         nstr = "N/A" if n is None else n
         tstr = "N/A" if t is None else t
@@ -388,7 +376,7 @@ class test_MLQAEc(TesterQAE):
         info.append(f"Ncircs = {self.Ncircs} | nshots = {self.nshots}")
         print_centered(info)
         
-    def rmse_evolution_both(self, nruns, Nq_target, seqs, save = True):
+    def sqe_evolution_multiple(self, nruns, Nq_target, seqs, save = True):
         '''
         Perform maximum likelihood QAE for LIS and/or EIS (whichever string(s)
         are in 'seqs') and plot the evolution of the MSE with the number of 
@@ -428,11 +416,11 @@ class test_MLQAEc(TesterQAE):
             ed.save_to_file()
             
         # plot_est_evol(estdata, exp_fit = False)
-        process_and_plot(estdata, processing = "averaging")
+        process_and_plot(estdata, processing = "averaging", save = save)
     
     def rmse_evolution(self, seq, Nq_target, nruns, estdata, bounds = False):
         ''' 
-        Auxiliary function for 'rmse_evolution_both'.
+        Auxiliary function for 'sqe_evolution_multiple'.
         
         Performs several runs of estimation, and averages the squared error
         for each iteration (which given 'seq' determines the number of queries) 
@@ -446,10 +434,11 @@ class test_MLQAEc(TesterQAE):
         self.Ncircs, actual_Nq = MLQAE.Ncircs_from_Nqueries(Nq_target, 
                                                             self.nshots, seq, 
                                                             self.Nq_calc)
-        print(f"> Will test a {seq} strategy using {self.Ncircs} circuits "
-              f"(~10^{round(np.log10(actual_Nq),1)} queries). "
-              "[rmse_evolution]")
-        
+        if not self.silent:
+            print(f"> Will test a {seq} strategy using {self.Ncircs} circuits "
+                f"(~10^{round(np.log10(actual_Nq),1)} queries). "
+                "[rmse_evolution]")
+            
         sqe_by_run = []
         pb = ProgressBar(nruns)
         for i in range(nruns): 
@@ -473,9 +462,6 @@ class test_MLQAEc(TesterQAE):
             else:
                 nqs, lbs = MLQAE_instance.Nqueries_evol(), None
                 
-            # print("ms", MLQAE_instance.ms)
-            # print("nqs", seq, nqs)
-            # print("lens", len(nqs), len(sqe_by_run[0]))
             estdata.add_data(seq, nqs = nqs, lbs = lbs, errs = sqe_by_run)
         
         return estdata, nruns
@@ -506,14 +492,10 @@ class test_MLQAEc(TesterQAE):
     
     def print_sqe_evolution_info(self, seqs, nruns, Nq_target):
         '''
-        Auxiliary function for 'rmse_evolution_both'.
+        Auxiliary function for 'sqe_evolution_multiple'.
         '''
-        
-        print("> Will run several round(s) of maximum likelihood quantum "
-          "amplitude estimation, and plot the average estimation errors as a"
-          f"function of Nq ({self.Nq_calc}). The following strategies for the "
-          "Grover applications will be tested: " + ", ".join(seqs)
-          + ". [print_sqe_evolution_info]")
+        print("> Will test {nruns} runs of 'Maximum Likelihood QAE' ",
+              f"({", ".join(seqs)}).")
         
         # theta = "rand" if self.a=="rand" else np.arcsin(np.sqrt(self.a))
         
@@ -521,7 +503,8 @@ class test_MLQAEc(TesterQAE):
         info.append(f"a={self.a} | Tc={self.Tc}")
         info.append(f"runs = {nruns} | nshots = {self.nshots} | " 
                     f"Nq_target = 10^{round(np.log10(Nq_target),1)}")
-        print_centered(info)
+        if not self.silent:
+            print_centered(info)
     
 def test(which):
     if which == 0:
@@ -543,26 +526,19 @@ def test(which):
             # If using analytical calculations + noise, define 'a' directly
             # while leaving 'n' and 't' blank.
             a = 0.3
-        test = test_MLQAEc(a, nshots)
-        test.final_result(Ncircs, seq, n, t, simulator = True)  
+        test = TestMLQAE(a, nshots)
+        test.final_result(Ncircs, seq, n, t, simulator = True)
     elif which==1:
         # a can be a float, or "rand" for picking 'a' at random for each run.
         a = (0,1)
-        Tc = (2000, 5000)
+        Tc = None # (2000, 5000)
         nshots = 100
-        nruns = 1
-        Nq_target = 5*10**4
-        seqs = ["EIS", "LIS"]
+        nruns = 5
+        Nq_target = 5*10**6
+        seqs = ["EIS"]#, "LIS"]
         Nq_calc = "cumul" # 'cumul' or 'last'.
-        test = test_MLQAEc(a, Tc, nshots, Nq_calc = Nq_calc)
-        test.rmse_evolution_both(nruns, Nq_target, seqs, save = True)
-    elif which==2:
-        '''
-        Upload an ExecutionData instance from a file and plot.
-        '''
-        filename = ('MLQAE_26_04_2024_23_36_0.5,nruns=1(EIS);1(LIS),nshots=100,Nq_cumul≈10^5.9#0.data')
-        # ed = data_from_file(filename)
-        # plot_est_evol(ed, exp_fit = False, CRbounds = False)
-        sqe_evol_from_file(filename)
+        test = TestMLQAE(a, Tc, nshots, Nq_calc = Nq_calc, silent = False)
+        test.sqe_evolution_multiple(nruns, Nq_target, seqs, save = True)
     
-test(1)
+if __name__ == "__main__":
+    test(1)
