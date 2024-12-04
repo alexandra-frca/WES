@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 7d64a05e436e54ec756c2e4c676a448019af188f alexandra-frca <alexandrafrca@gmail.com> 1733253423 +0000	clone: from https://github.com/alexandra-frca/BAE.git
+7d64a05e436e54ec756c2e4c676a448019af188f 844d3179b0080bc2b95367995a5b4eab2c9c86f0 alexandra-frca <alexandrafrca@gmail.com> 1733253461 +0000	commit: Deleted.
+844d3179b0080bc2b95367995a5b4eab2c9c86f0 af10720227b8c321ec5fb641973d5b8acf822954 alexandra-frca <alexandrafrca@gmail.com> 1733270278 +0000	commit: Fixes.
+af10720227b8c321ec5fb641973d5b8acf822954 465c219c300ae94d1345854d35325d845953f24b alexandra-frca <alexandrafrca@gmail.com> 1733332013 +0000	commit: Fix bugs; standardize classes; add examples.
+465c219c300ae94d1345854d35325d845953f24b ff9c083f610a84c62d466a2bdfa510cad96a03bf alexandra-frca <alexandrafrca@gmail.com> 1733332290 +0000	commit: Add gitignore.
+ff9c083f610a84c62d466a2bdfa510cad96a03bf 314cd433e8a7462bb0153b28c7ab4f8e7ba14687 alexandra-frca <alexandrafrca@gmail.com> 1733342317 +0000	commit: Add comments, delete unused lines and files.
+314cd433e8a7462bb0153b28c7ab4f8e7ba14687 d5cc48007f69a1a0f546f16eb417090c440783b8 alexandra-frca <alexandrafrca@gmail.com> 1733342817 +0000	commit (merge): Remove ignored files from Git tracking
+d5cc48007f69a1a0f546f16eb417090c440783b8 9cbb32b10d06d56c4381ba08a65b7221e0519775 alexandra-frca <alexandrafrca@gmail.com> 1733342972 +0000	commit: Updated notebook.
+9cbb32b10d06d56c4381ba08a65b7221e0519775 dac165703c6099c717e5803c2145a7580709dd68 alexandra-frca <alexandrafrca@gmail.com> 1733343038 +0000	commit: Delete files.
