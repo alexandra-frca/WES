@@ -1,8 +1,0 @@
-> Run 0.
-> Sampled a = 0.6875797858275612 (theta = 0.9776826201927123).
-> Warming up with 100 classical shots. [warm_up]
-> Measured 100 shots data for classical controls.
-> Post warm-up stats: mean = 0.6475, std = 0.0477.
-> Adaptive phase. Will perform 1 shot measurements up to Nq = 10^6.0.
-> Strat: k = 1, Nevals = 50, erefs = 3, ethr = 3, cap = False, capk = 2 [adaptive_phase]
-> Upping search range from 1-50. > Upping search range from 50-100. > Upping search range from 100-200. > Upping search range from 200-400. > Upping search range from 400-800. > Upping search range from 800-1600. > Upping search range from 1600-3200. 
