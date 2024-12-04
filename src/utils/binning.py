@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 23 10:14:37 2022
-
-@author: alexa
-"""
+'''
+Binning to treat adaptive QAE data.
+'''
 from scipy import interpolate as interp, optimize as opt
 import numpy as np
 from pandas import cut, DataFrame

@@ -1,28 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri May 12 14:31:48 2023
+'''
+Testing the speed of different techniques to perform brute force optimization.
+'''
 
-@author: alexa
-"""
-
-import math, numpy as np
+import numpy as np
 import scipy.optimize as opt
 from utils.misc import RelativeTimer
 
-
-def expected_utility(self, ctrl: float, data):
-    util = 0
-    outcomes = [0,1]
-    for outcome in outcomes:
-        # Calculate the expected probability of 'outcome'.
-        p = self.expected_probability(ctrl, outcome)    
-        # Calculate the conditional utility given 'outcome'.
-        if not math.isclose(p,0):
-            cutil = self.conditional_utility(ctrl, outcome, data)
-            util += p*cutil
-        
-    return util
-    
+def objective_function(theta):
+    return -np.cos(theta)*theta
 
 def scipy_brute(objective_function, interval, evals, silent = False):
     result = opt.brute(objective_function, [interval], Ns=evals, finish = None)

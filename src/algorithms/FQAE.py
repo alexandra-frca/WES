@@ -1,14 +1,5 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    The 'faster amplitude estimation' algorithm of [1].
-    
-    References:
-    ----------
-    [1] Nakaji (2020). Faster amplitude estimation.
-    
-   ============================================================================
+Faster quantum amplitude estimation.
 '''
 
 import numpy as np
@@ -201,7 +192,7 @@ class TestFQAE(TesterQAE):
             
         process_and_plot(raw_estdata, save = save)
     
-def test_fun(which):
+def test(which):
     if which == 0:
         a = 0.007
         global rth 
@@ -226,6 +217,6 @@ def test_fun(which):
         kmax_start, kmax_end = 1, 18
         test = TestFQAE(a, Tc, delta_c)
         test.sqe_evolution_multiple(nruns, kmax_start, kmax_end, save = True)
-    
+         
 if __name__ == "__main__":
-    test_fun(2)
+    test(2)

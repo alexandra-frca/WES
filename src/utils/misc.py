@@ -1,18 +1,14 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-    Auxiliary functions for file management, warnings, and generic utilities 
-    such as conversions. 
-   ============================================================================
+Miscellaneous utility functions.
 '''
-import numpy as np
-from scipy.stats import norm
 import importlib
 import inspect
 import os, sys
 from operator import itemgetter
 from copy import deepcopy
 from itertools import count
+import numpy as np
+from scipy.stats import norm
 from scipy.stats import truncnorm
 
 class SuppressPrints:

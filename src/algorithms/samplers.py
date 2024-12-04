@@ -1,22 +1,11 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    Algorithms for sampling from the distributions in approximate Bayesian 
-    inference.
-    
-    Three techniques are implemented: 
-    - Batch updating on a grid
-    - Sequential Monte Carlo with the Liu-West filter (SMC-LW)
-    - Sequential Monte Carlo (SMC) with Markov chain Monte Carlo (MCMC): random
-    walk Metropolis (RWM).
-    
-   ============================================================================
+Algorithms for sampling from the distributions in approximate Bayesian 
+inference, namely sequential Monte Carlo with the Liu-West filter (SMC-LW)
+and with Markov chain Monte Carlo (MCMC): random walk Metropolis (RWM).
 '''
 import math
-import random
-import numpy as np
 from copy import deepcopy
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, AutoMinorLocator
 

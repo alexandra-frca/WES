@@ -1,33 +1,5 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    Maximum likelihood amplitude estimation, based on [1].
-    
-    As compared to canonical QAE, this algorithm forgoes the QFT and controlled 
-    Grover operations. Instead, it attempts to directly infer the amplitude 
-    from measurement data collected from an enseble of Grover type circuits 
-    (using varying numbers of Grover iterations). Based on those data, maximum 
-    likelihood estimate is produced by optimization (here grid-based + 
-    Nelder-mead).
-    
-    For gathering the data, either:
-    - A circuit oracle is constructed at random given the number of qubits and 
-    solutions, and Qiskit's simulator is used;
-    - The amplitude is given directly and the outcomes are produced by binomial 
-    sampling.
-    
-    Below is a class that systematizes tests to the algorithm. The main results
-    are plots of the estimation error as a function of the number of queries.
-    
-    The estimation error requires averaging over runs. For that, either a fixed
-    amplitude is used or it is picked at random for each run.s
-    
-    References:
-    ----------
-    [1] Suzuki et al (2019). Amplitude Estimation without phase estimation. 
-    
-   ============================================================================
+Maximum likelihood amplitude estimation.
 '''
 
 import numpy as np
@@ -415,7 +387,6 @@ class TestMLQAE(TesterQAE):
         if save:
             ed.save_to_file()
             
-        # plot_est_evol(estdata, exp_fit = False)
         process_and_plot(estdata, processing = "averaging", save = save)
     
     def rmse_evolution(self, seq, Nq_target, nruns, estdata, bounds = False):

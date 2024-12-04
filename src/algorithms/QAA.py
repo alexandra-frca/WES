@@ -1,14 +1,7 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    Implementations of algorithms related to quantum amplitude estimation 
-    (QAA). 
-    
-    The CheckingFunction class manages a generalized Grover oracle. QAA is a 
-    base class for QAA based algorithms.
-    
-   ============================================================================
+Algorithms related to quantum amplitude estimation (QAA). The CheckingFunction 
+class manages a generalized Grover oracle. QAA is a base class for QAA based 
+algorithms.
 '''
 try:
     from google.colab import files

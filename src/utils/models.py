@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-    Classes for likelihood models, namely the squared-sinusoidal likelihoods
-    induced by QAE or a precessing qubit (continuous measurement times).
-   ============================================================================
+Classes for likelihood models.
 '''
-import numpy as np
 import math
+from abc import ABC, abstractmethod
 import numpy as np
 import scipy.optimize as opt
-from abc import ABC, abstractmethod
 from src.utils.plotting import plot_graph
 from src.utils.mydataclasses import MeasurementData
 from src.utils.misc import np_invalid_catch, print_1st_err

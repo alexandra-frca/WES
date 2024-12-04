@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 27 17:21:12 2022
-
-@author: alexa
-"""
+'''
+Amplitude estimation by Gaussian rejection filtering.
+'''
 import numpy as np
 from scipy.stats import circvar
 from scipy.stats import vonmises, norm, uniform

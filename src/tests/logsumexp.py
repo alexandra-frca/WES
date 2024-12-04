@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 29 11:31:40 2024
-
-@author: alexa
-"""
+'''
+Testing logsumexp representation to avoid underflows.
+'''
 from utils.misc import logsumexp
 
 w = 1e-170

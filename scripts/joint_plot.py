@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Mar 29 16:24:37 2023
-
-@author: alexa
+Plotting datasets from src/datasets/<folder> together in a graph.
 """
 import os
-from src.utils.plotting import plot_err_evol, process
 import matplotlib.pyplot as plt
 
+from src.utils.plotting import plot_err_evol, process
 from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
 

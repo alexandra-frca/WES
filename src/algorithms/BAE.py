@@ -1,17 +1,5 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-
-    Offline and adaptive parameter estimation using approximate Bayesian
-    inference.
-
-    Two testing tools (a function and a class) are included:
-    - 'test', which tests single runs of inference with different sampling
-    strategies.
-    - 'TestBAE', which tests multiple runs to get data on the evolution of
-    the MSE with the number of queries (for plotting).
-
-   ============================================================================
+Bayesian quantum amplitude estimation.
 '''
 import sys
 import numpy as np

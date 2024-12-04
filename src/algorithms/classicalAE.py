@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
+'''
 Amplitude estimation by classical Monte Carlo averaging.
+'''
 
-"""
 import numpy as np
 import sys
 import importlib
@@ -86,6 +85,7 @@ class testCAE(TesterQAE):
             info.append(f"a = {self.a} | runs = 10^{expb10(nruns)}")
             info.append(f"nshots={{10^{expb10(Nsmin)}..10^{expb10(Nsmax)}}} → "
                         f"Nq={{10^{expb10(Nq_start)}.. 10^{expb10(Nq_target)}}}")
+            print_centered(info)
 
         print(f"> Will test {nruns} runs of 'classical AE'.")
         nqs, sqes_by_run = [], []

@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Feb 28 17:05:56 2024
-
-@author: alexa
-"""
-import numpy as np 
-import time, timeit
+'''
+Classes and functions related to executions (multiple runs of the same algorithm
+for statistics).
+'''
+import time
+import timeit
 from time import perf_counter
 from typing import Callable
 from dataclasses import dataclass, field
+import numpy as np 
 
 from src.utils.files import PrintsToFile
 from src.algorithms.samplers import SMCsampler

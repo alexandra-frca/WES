@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-    "Simpler" quantum amplitude estimation, based on [1]
-
-    [1] Wie et al (2019). Simpler Quantum Counting. 
+Simpler quantum amplitude estimation.
 """
 import numpy as np
 import importlib

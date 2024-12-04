@@ -1,26 +1,7 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    Emulate canonical QAE without actually running the circuits, by using
-    the knowledge of the solution to compute the outcome probabilities 
-    analytically. Binomial sampling can be used to inject shot noise.
-    
-    For clarifications see the blog post dated 14th july 2022.
-    
-    Below is a class that systematizes tests to the algorithm. The main results
-    are plots of the estimation error as a function of the number of queries.
-    Others include a table summarizing results for a sequence of 'ms' (number
-    of auxiliary qubits) and histograms (with or without noise).
-    
-    The estimation error requires averaging over runs. For that, either a fixed
-    amplitude is used or it is picked at random for each run.
-    
-    References:
-    ----------
-    [1] Brassard et al (2000). Quantum Amplitude Estimation and Amplification.
-    
-   ============================================================================
+Emulate canonical QAE without actually running the circuits, by using
+the knowledge of the solution to compute the outcome probabilities 
+analytically. Binomial sampling can be used to inject shot noise.
 '''
 
 import pandas as pd

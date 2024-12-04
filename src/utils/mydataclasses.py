@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-
-    For storing dataclasses, namely respecting measurement data (for
-    inference), estimation data (errors,...) and execution data (numbers of
-    shots, real parameter,...).
-
-   ============================================================================
+For storing dataclasses, namely respecting measurement data (for
+inference), estimation data (errors,...) and execution data (numbers of
+shots, real parameter,...).
 '''
 import random
 from dataclasses import dataclass
@@ -421,6 +416,9 @@ ex2.add_data("example2", nqs = [5, 7, 4], lbs = [2, 5, 2])
 def join_estdata_files(filestart, indices = None, save = False):
     """
     Join multiple EstimationData objects stored in files into a single one.
+
+    Use as:
+        combined_dataset = join_estdata_files(filestart, indices = range(13,25))
 
     Parameters
     ----------

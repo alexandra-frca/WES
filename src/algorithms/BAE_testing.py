@@ -1,11 +1,13 @@
+'''
+Class for testing BAE.
+'''
 import numpy as np
-
 import matplotlib.pyplot as plt
 from src.algorithms.BAE import BAE
 from src.algorithms.samplers import get_sampler
 from src.utils.models import QAEmodel
-from src.utils.plotting import process_and_plot, sqe_evol_from_file, plot_single_run
-from src.utils.mydataclasses import EstimationData, ExecutionData, join_estdata_files
+from src.utils.plotting import process_and_plot, plot_single_run
+from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.misc import (print_centered, dict_str, sigdecstr, k_largest_tuples, 
                         k_smallest_tuples, b10str, dict_info, lprint)
 from src.utils.running import Runner, BAERunsData
@@ -13,7 +15,6 @@ from src.utils.running import Runner, BAERunsData
 NDIGITS = 4
 
 class TestBAE():
-
     def __init__(self, a, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
                  silent = False, save = True):
         self.a = a
@@ -140,7 +141,7 @@ class TestBAE():
             exdata = self.create_execdata(raw_estdata, nruns)
             exdata.save_to_file()
 
-    def sqe_evolution(self, i):
+    def sqe_evolution(self, i, debug = False):
         '''
         Perform a single run of Bayesian adaptive QAE, and return lists of the
         numbers of queries, errors and standard deviations (ordered by step).
@@ -167,15 +168,13 @@ class TestBAE():
         print("> Final (normalized) RMSE: ", sigdecstr(nsqes[-1]**0.5, NDIGITS))
         print("> Final (normalized) std : ", sigdecstr(nstds[-1], NDIGITS))
 
-        '''
         # For debugging.
-        if nsqes[-1]**0.5 > 1e-4:
+        if debug and nsqes[-1]**0.5 > 1e-4:
             print("> Larger than 1e-4!")
             el, rl, accl = Est.exp_list, sampler.resampled_list, sampler.acc_rates
             essl = [ess/sampler.Npart for ess in sampler.ess_list]
             self.show_single_run(sampler, nqs, nstds, nsqes, el, rl, accl, essl,
                                  f"run {i} (bad)")
-        '''
         return nqs, nsqes, nstds
     
     def show_single_run(self, sampler, nqs, nstds, nsqes, el, rl, accl, essl, 
@@ -189,7 +188,6 @@ class TestBAE():
         lprint(el)
         sampler.print_lists()
         sampler.plot_particles(ttl_xtra = f"- {title}")
-
 
     def print_stats_several(self, ls, dscrs):
         for l, dscr in zip(ls, dscrs):
@@ -273,7 +271,6 @@ def test_evol(which):
         nruns = 1
         sampler_str = "RWM"
 
-
         Tc_opts = {"Tc": Tc,
                     "Tc_precalc": True if Tc else False,
                     "known_Tc": False,
@@ -306,20 +303,6 @@ def test_evol(which):
                             sampler_kwargs, save = True)
 
         Test.sqe_evolution_multiple(nruns)
-    elif which == 2:
-        filename = "BQAE_21_03_2024_19_55_a=rand[0,1];Tc=None,nruns=100,nshots=(100, 1),STRAT=(wnshots=100,factor=1,Nevals=50,exp_refs=3,exp_thr=3,cap=True,capk=1.5),RWM(Npart=2000,thr=0.5,var=theta,ut=var,plot=False,factor=1)#0.data"
-        sqe_evol_from_file(filename)
-    elif which == 3:
-        filestart = ("adaptive_QAE_05_07_2022[LW,Nsmeas=(1,inf),Nsshots=(100,1),"
-                     "Npart=1000,runs=5]")
-        save = False
-        select_indices = False
-        indices = range(13,25) if select_indices else None
-
-        combined_dataset = join_estdata_files(filestart, indices = indices,
-                                              save = save)
-        if combined_dataset:
-            process_and_plot(combined_dataset)
 
 if __name__ == "__main__":
     test_evol(1)

@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-    Some quantum operations and auxiliary functions, implemented using Qiskit. 
-    
-    Includes functions for simulation using Qiskit's Aer simulator. 
-   ============================================================================
+Some quantum operations and auxiliary functions, implemented using Qiskit. 
 '''
 from qiskit import QuantumCircuit, transpile
 from qiskit_aer import Aer

@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 29 18:23:59 2024
-
-@author: alexa
-"""
+'''
+Functions related to file handling.
+'''
 import inspect
 import os, sys
 import pickle

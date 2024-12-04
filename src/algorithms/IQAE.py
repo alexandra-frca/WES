@@ -1,51 +1,16 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-    The iterative quantum amplitude estimation algorithm of [1].
-    
-    In each iteration, a confidence interval is narrowed by amplifying the 
-    amplitude and measuring. We can invert the likelihood of the observed amp,
-    
-                P(1|theta) = sin^2(A*theta) = [1-cos(2*A*theta)]/2
-    (A = K/2 as per the paper definition)
-    
-    , as long as A*theta is in [0, pi/2] OR [pi/2, pi]. The period of the sin^2
-    is pi, so this covers the relevant domain. After pi/2, the sine backtracks.
-    (For assessments of the cosine behaviour wrt. its argument, multiply by 2.)
-    
-    This means that if we know in which of the intervals the angle lies, we can
-    invert the likelihood to get a frequentist estimate of 'a'. We're 
-    estimating an angle in [0, pi/2], so for no amplification we know it's in 
-    the 1st interval. We can keep track of in which half the amplified angle is 
-    by making sure that the amplification factor is such that it places the
-    entire confidence interval in either the first half, or the second. 
-    
-    Hence, the amplification schedule is chosen to i) maximize the Fisher 
-    information (<-> amplify as much as possible) while ii) placing the current 
-    confidence interval within the same injective region (1st or 2nd half).
-    In the worst case, the latter condition is fulfilled by k=0.
-    
-    In the paper they say only the cosine formula is invertible. I do not 
-    understand why.
-    
-    [1] Grinko et al (2021). Iterative quantum amplitude estimation.
-   ============================================================================
+Iterative quantum amplitude estimation.
 '''
 
-import sys
-sys.path.append("C:/Users/alexa/Desktop/BAE")
-from src.algorithms.BAE import BAE
-
-import numpy as np
 import sys
 import importlib
+import numpy as np
 
 from src.utils.misc import print_centered, expb10
 from src.utils.running import ProgressBar
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.models import QAEmodel
-from src.utils.binning import sqe_evol_from_file
-from src.utils.plotting import process_and_plot, Plotter
+from src.utils.plotting import process_and_plot
 from src.algorithms.QAE import TesterQAE
 
 Ndigits = 5

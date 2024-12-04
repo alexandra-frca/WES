@@ -1,17 +1,7 @@
-# -*- coding: utf-8 -*-
 '''
-   ============================================================================
-    Algorithms for quantum amplitude estimation.
-    
-    The QAE class implements the canonical approach of [1]. 
-    
-    The BayesianQAE class is used for MLQAE, and Bayesian inference based 
-    algorithms.
-    
-    References:
-    ----------
-    [1] Brassard et al (2000). Quantum Amplitude Estimation and Amplification.
-   ============================================================================
+Algorithms for quantum amplitude estimation. The QAE class implements the 
+canonical approach. The BayesianQAE class is used for MLQAE, and Bayesian 
+inference based algorithms.
 '''
 import sys
 import importlib

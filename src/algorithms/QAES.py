@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-   ============================================================================
-   
-    Quantum amplitude estimation, "simplified" - based on [1].
-    
-    References:
-    ----------
-    [1] Aaranson et al (2019). Quantum Approximate Counting, Simplified.
-    
-   ============================================================================
+Quantum amplitude estimation simplified.
 '''
 
 import numpy as np

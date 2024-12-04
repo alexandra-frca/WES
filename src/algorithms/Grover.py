@@ -1,12 +1,5 @@
-# -*- coding: utf-8 -*-
-
 '''
-   ============================================================================
-   
-    Generalized Grover algorithm for arbitrary functions and numbers of 
-    solutions.
-    
-   ============================================================================
+Generalized Grover algorithm for arbitrary functions and numbers of solutions.
 '''
 
 import sys
