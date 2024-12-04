@@ -11,10 +11,8 @@ import sys
 from src.algorithms.QAE import TesterQAE
 from src.utils.plotting import process_and_plot
 from src.utils.misc import print_centered, expb10
-from src.utils.binning import bin_and_average
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.running import ProgressBar
-from src.utils.files import data_from_file
 from src.utils.models import QAEmodel
 
 try:
@@ -273,7 +271,7 @@ def test(which):
         nruns = int(1e2) # 10**5
         Nq_start = 500
         Nq_target = 10**10
-        test.sqe_evolution_multiple(nruns, Nq_start, Nq_target)  
+        test.sqe_evolution_multiple(nruns, Nq_start, Nq_target, save = True)  
 
 if __name__ == "__main__": 
     test(2)

@@ -19,10 +19,8 @@ from src.algorithms.QAE import TesterQAE
 from src.utils.misc import closest_odd_int, expb10, print_centered
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.plotting import process_and_plot
-from src.utils.binning import bin_and_average
 from src.utils.models import QAEmodel
 from src.utils.running import ProgressBar
-from src.utils.files import data_from_file
 
 reload = False
 if reload:
@@ -157,7 +155,7 @@ class TestQAES(TesterQAE):
             info.append(f"| reps = {reps}")
             print_centered(info)
         
-        print("> Will test {reps} runs of 'QAE, simplified'.")
+        print(f"> Will test {reps} runs of 'QAE, simplified'.")
         if not self.silent:
             print_info()
         
@@ -210,7 +208,7 @@ def test(which):
         epsmax = 1e-2
         epsmin = 1e-6
         alpha = 0.05
-        runs = 1
+        runs = 100
         test = TestQAES(a, Tc,  alpha)
         test.sqe_evolution_multiple(runs, epsmin, epsmax, save = True)
         

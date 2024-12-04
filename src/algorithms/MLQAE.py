@@ -153,7 +153,7 @@ class MLQAE(BayesianQAE):
             ms = [0] + [2**k for k in evals[:-1]]
         return ms
     
-    def maximize_likelihood(self, hs, finish = True, evals = 5e3, 
+    def maximize_likelihood(self, hs, finish = True, evals = 5e4, 
                             excfrom = None, silent = True):
         # excfrom - exclude from (element and following ones).
         # print("ms hs 2", self.ms[:excfrom], hs[:excfrom])
@@ -494,7 +494,7 @@ class TestMLQAE(TesterQAE):
         '''
         Auxiliary function for 'sqe_evolution_multiple'.
         '''
-        print("> Will test {nruns} runs of 'Maximum Likelihood QAE' ",
+        print(f"> Will test {nruns} runs of 'Maximum Likelihood QAE' ",
               f"({", ".join(seqs)}).")
         
         # theta = "rand" if self.a=="rand" else np.arcsin(np.sqrt(self.a))

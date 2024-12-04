@@ -5,14 +5,14 @@ Created on Wed Mar 29 16:24:37 2023
 @author: alexa
 """
 import os
-import matplotlib.pyplot as plt
 from src.utils.plotting import plot_err_evol, process
+import matplotlib.pyplot as plt
 
 from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
 
 PROCESSING = {'classical': 'none',
-                'canonical': 'none',
+                'canonical': 'averaging2',
                 'MLQAE':  'averaging', 
                 'QAES': 'binning',
                 'SQAE #2': "binning", 
@@ -45,18 +45,22 @@ def dataset_filenames_from_folder(folder_name):
     full_paths = [os.path.join(folder_path, filename) for filename in filenames]
     return full_paths
 
-def get_estdatas(filename_list, stat):
+def get_estdatas(filename_list, stat, silent = True):
     '''
     Get estimation data objects from the execution data objects in the files
     and process them.
     '''
     execdatas = [data_from_file(filename) for filename in filename_list]
+    if not silent:
+        for execdata in execdatas:
+            print(execdata)
     labels = [get_label(execdata) for execdata in execdatas]
 
     estdatas = [execdata.estdata for execdata in execdatas]
     estdatas = [process(estdata, stat, how = PROCESSING[label])
-                for label, estdata in zip (labels, estdatas)]
+               for label, estdata in zip (labels, estdatas)]
     return estdatas
 
+# Previously, "canonical" had "none" processing because it was pre-processed.
 if __name__ == "__main__":
     plot_from_folder("noiseless")

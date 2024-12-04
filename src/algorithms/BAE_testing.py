@@ -15,7 +15,7 @@ NDIGITS = 4
 class TestBAE():
 
     def __init__(self, a, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
-                 silent = False):
+                 silent = False, save = True):
         self.a = a
         # Keep full Tc dicts just for the prints; organize rest of info into
         # other attributes.
@@ -29,6 +29,7 @@ class TestBAE():
         self.sampler_str = sampler_str
         self.sampler_kwargs = sampler_kwargs
         self.silent = silent
+        self.save = save
 
     def param_str(self):
         a_str = (self.rand_pstr(self.a) if isinstance(self.a,tuple)
@@ -73,7 +74,7 @@ class TestBAE():
         else:
             return self.Tc
 
-    def sqe_evolution_multiple(self, nruns, save = True, redirect = 0):
+    def sqe_evolution_multiple(self, nruns, redirect = 0):
         '''
         Gets the evolution of the squared error with the iteration number, for
         multiple runs. All the data is joined together in a non-nested list,
@@ -92,6 +93,7 @@ class TestBAE():
         use the RMSE from the outset is that we may want to do calculations
         with MSE, then take the root in the end (to mimic the usual "average
         the square -> take the root", but with curve fits/...).
+        
         '''
         def print_info():
             info = ["Bayesian adaptive QAE"]
@@ -112,11 +114,13 @@ class TestBAE():
 
             print_centered(info)
 
-        print_info()
+        print(f"> Will test {nruns} runs of 'Bayesian QAE'.")
+        if not self.silent:
+            print_info()
         rdata = BAERunsData()
         runner = Runner(f = self.sqe_evolution, nruns = nruns,
                         process_fun = rdata.add_run_data, redirect = redirect,
-                        silent = self.silent)
+                        silent = self.silent, save = self.save)
 
         nruns = runner.run()
 
@@ -130,9 +134,9 @@ class TestBAE():
             self.print_stats_several(final, final_dscr)
             
         raw_estdata = self.create_estdata(*full)
-        process_and_plot(raw_estdata, save = save)
+        process_and_plot(raw_estdata, save = self.save)
 
-        if save:
+        if self.save:
             exdata = self.create_execdata(raw_estdata, nruns)
             exdata.save_to_file()
 
@@ -299,9 +303,9 @@ def test_evol(which):
             sampler_kwargs["a_LW"] = 0.98
 
         Test = TestBAE(a, Tc_opts, strat, maxPT, sampler_str,
-                            sampler_kwargs)
+                            sampler_kwargs, save = True)
 
-        Test.sqe_evolution_multiple(nruns, save = True)
+        Test.sqe_evolution_multiple(nruns)
     elif which == 2:
         filename = "BQAE_21_03_2024_19_55_a=rand[0,1];Tc=None,nruns=100,nshots=(100, 1),STRAT=(wnshots=100,factor=1,Nevals=50,exp_refs=3,exp_thr=3,cap=True,capk=1.5),RWM(Npart=2000,thr=0.5,var=theta,ut=var,plot=False,factor=1)#0.data"
         sqe_evol_from_file(filename)

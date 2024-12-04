@@ -468,9 +468,25 @@ class TestQAE():
         Run canonical QAE (eventually enhanced with MLE) several times for each
         'm' in a sequence of 'ms', to get the root mean square error (RMSE) as
         a function of 'm' - and thus of the number of queries, since Nq=f(m).
-        
-        If self.a is 'rand', the amplitude is picked at random for each run. If 
-        not, it's kept constant and equal to self.a.
+
+        This implementation is somewhat opposite to other QAE algorithms.
+        The others do independent runs under the same circumstances, producing
+        a list whose elements are lists of estimation errors for specific runs.
+        The outter list is over the different runs. The inner lists are 
+        sqe_by_run.
+        Here we produce a list whose elements are lists of estimation errors 
+        for specific Nqs. The outter list is over the different Nqs. The inner
+        lists are sqe_by_step (step = Nq).
+        This could be made more consistent by instead of doing nruns for each m,
+        doing nruns each of which would be a sequence of executions of QAE for 
+        each m. Then the results could be treated as in MLAE.
+        But this is less natural, because in MLAE intermediate results are 
+        available within the run for continuous Nqs(progressive learning), 
+        whereas in QAE one must run the algorithm completely for each m and then
+        start over. 
+        But it would have 2 benefits: one, more accurate and compact progress 
+        bar. Two, interrupting execution could still produce results with a 
+        smaller number of runs.
         '''
         def print_info():
             info = ["Canonical QAE"]
@@ -481,12 +497,13 @@ class TestQAE():
                         f"{QAEemulator.Nq_from_m(mmin, self.nshots, b10 = True)}, 10^"
                         f"{QAEemulator.Nq_from_m(mmax, self.nshots, b10 = True)}] "
                         f"(target max is 10^{expb10(Nq_target)}).")
-            print_centered(info)
+            if not self.silent:
+                print_centered(info)
         
-        assert mmin>0, "non-positive number of qubits makes no sense"
+        assert mmin>=0, "negative number of qubits makes no sense"
         
         mmax = QAEemulator.m_from_Nq(Nq_target, self.nshots)
-        print("> Will test {nruns} runs of 'canonical QAE'.")
+        print(f"> Will test {nruns} runs of 'canonical QAE'.")
         if not self.silent:
             print_info()
         
@@ -496,7 +513,7 @@ class TestQAE():
         for m in ms:
             try:
                 self.m = m
-                print(f"> Testing {nruns} runs of QAE with m={self.m}...")
+                print(f"> Testing {nruns} runs of QAE with {self.m} aux qubits...")
                 sqes = self.sqes_given_m(nruns, MLE)
                 sqe_by_step.append(sqes)
             except KeyboardInterrupt:
@@ -630,7 +647,7 @@ def test(which):
         Plot the scaling of the estimation errors with the number of queries.
         '''
         # a can be a float, or 'rand' for picking 'a' at random for each run.
-        a = (0,1)
+        a =  (0,1)
         mmin = 2
         Nq_target = 10**6
         nruns = 100
@@ -638,4 +655,5 @@ def test(which):
         Test = TestQAE(a, mmin, nshots)
         Test.sqe_evolution_multiple(mmin, Nq_target, nruns, MLE = True, save = True)
         
-test(5)
+if __name__ == "__main__":
+    test(5)

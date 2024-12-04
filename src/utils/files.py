@@ -112,12 +112,13 @@ def save_as(data, filename):
     return data, filename
 
 class PrintsToFile:
-    def __init__(self, desc):
+    def __init__(self, desc, silent = False):
         # File to be created later if using.
         self.f = None 
         timestamp = datetime.now(pytz.timezone('Portugal')).strftime("%d_%m_%Y_%H_%M")
         self.filename = fix_filename(f'{desc}_{timestamp}.txt')
-        print(f"\n> Will direct prints to file {self.filename}.")
+        if not silent:
+            print(f"\n> Will direct prints to file {self.filename}.")
         
     def __enter__(self):
         self.f = open(self.filename, 'a')

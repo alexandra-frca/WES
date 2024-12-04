@@ -513,6 +513,7 @@ def power_fit(xs, ys, label = "", seq=None):
     m, b = cf[0] 
     
     label = "RMSE" if len(label) == 0 else label
+    label = label.capitalize()
     print(f"> {label} = O(Nq^{round(m,2)})", end = ";")
 
     print(f" offset = {round(b, 2)}.")
@@ -642,8 +643,8 @@ def process_nonadapt_data(raw_estdata, stat, by_step = False, every = 2):
         sqe_list = raw_estdata.err_dict[key]
         err_per_step = estimation_errors(sqe_list, stat = stat, 
                                          by_step = by_step)
-        estdata.err_dict[key] = err_per_step #thin_list(err_per_step, 10)
-        # estdata.Nq_dict[key] = thin_list(estdata.Nq_dict[key], 10)
+        estdata.err_dict[key] = thin_list(err_per_step, 2, 5) # err_per_step
+        estdata.Nq_dict[key] = thin_list(estdata.Nq_dict[key], 2, 5)
     
     return estdata
 

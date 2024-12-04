@@ -456,13 +456,13 @@ def dict_info(d, sep = ","):
         s = s.replace(",", sep)
     return s
 
-def thin_list(l, k):
+def thin_list(l, k, mn):
     '''
-    Only keep every kth element, but present at least 10 points, or all if <10.
+    Only keep every kth element, but present at least mn points, or all if <mn.
     '''
-    # len(l)/k > 10.
+    # len(l)/k > mn.
     k = min(k, 
-            max(1,int(len(l)/10)))
+            max(1,int(len(l)/mn)))
     return l[::k]
 
 def logspace(mn, mx, N):

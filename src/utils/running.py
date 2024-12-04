@@ -55,7 +55,7 @@ class Runner():
         - For redirect = 2, all prints are saved to a file.
     '''
     def __init__(self, f, nruns, process_fun = None, redirect = 0, 
-                 silent = False):
+                 silent = False, save = True):
         '''
         Untimed: just print the progress bar. 
         '''
@@ -70,8 +70,9 @@ class Runner():
         assert redirect in [0, 1, 2]
         # If redirect is 1, this will be done only after the second run.
         if redirect == 2:
-            self.tofile = PrintsToFile("run_logs")
+            self.tofile = PrintsToFile("run_logs", silent)
         self.silent = silent
+        self.save = save
         
     def run(self, *args, **kwargs):
         return self.run_timed(*args, **kwargs)
@@ -85,7 +86,8 @@ class Runner():
             timer_all.stop(units = "s", f = lambda x: x/self.nruns)
         
         if self.redirect == 2  or (self.redirect == 1 and self.nruns > 1):
-            self.tofile.save_file()
+            if self.save:
+                self.tofile.save_file()
             
         return r
         

@@ -7,6 +7,7 @@ import numpy as np
 import sys
 import importlib
 
+from src.algorithms.QAE import TesterQAE
 from src.utils.misc import print_centered, expb10
 from src.utils.models import QAEmodel
 from src.utils.plotting import process_and_plot
@@ -43,11 +44,13 @@ class classicalAE():
         # 1-to-1 correspondence.
         return nshots
         
-class testCAE():
-    def __init__(self, a):
+class testCAE(TesterQAE):
+    def __init__(self, a, silent = False):
         self.a = a
+        self.silent = silent
     
     def estimation(self, nshots):
+        
         CAE = classicalAE(nshots, QAEmodel(self.a))
         a_est = CAE.estimate()
         print(f"> Estimated a = {a_est}. [test_CAE.estimation]")
@@ -72,7 +75,7 @@ class testCAE():
         sqe = np.mean(sqerrs)
         return Nq, sqe
         
-    def rmse_evolution(self, Nq_start, Nq_target, nruns, save = True):
+    def sqe_evolution_multiple(self, Nq_start, Nq_target, nruns, save = True):
         '''
         Note that in this case any target Nqueries can be achieved exactly, 
         by setting nshots to said target.
@@ -83,12 +86,13 @@ class testCAE():
             info.append(f"a = {self.a} | runs = 10^{expb10(nruns)}")
             info.append(f"nshots={{10^{expb10(Nsmin)}..10^{expb10(Nsmax)}}} → "
                         f"Nq={{10^{expb10(Nq_start)}.. 10^{expb10(Nq_target)}}}")
-            print_centered(info)
-    
+
+        print(f"> Will test {nruns} runs of 'classical AE'.")
         nqs, sqes_by_run = [], []
         Nsmin = classicalAE.nshots_from_Nq(Nq_start)
         Nsmax = classicalAE.nshots_from_Nq(Nq_target)
-        print_info()
+        if not self.silent:
+            print_info()
         
         for i in range(nruns):
             nshots = Nsmin
@@ -105,41 +109,23 @@ class testCAE():
         
         estdata = EstimationData()
         estdata.add_data("classical", nqs = nqs, lbs = None, errs = sqes_by_run)
-        # plot_err_evol("RMSE", estdata, exp_fit = False)
-        pestdata = process_and_plot(estdata, processing = "averaging")
-
+        pestdata = process_and_plot(estdata, processing = "averaging", 
+                                    save = save)
         if save:
             ed = ExecutionData(self.a, pestdata, nruns, 
                                f"{{10^{expb10(Nsmin)}"
                                f"..10^{expb10(Nsmax)}}}", 
                                label = "classical_AE")
             ed.save_to_file()
-    
-    @property
-    def local_a(self):
-        '''
-        For each run, the real amplitude parameter will be 'local_a'.
-        
-        The 'a' attribute is always constant, and can hold:
-            
-        - A permanent value for 'a'. In that case, all runs will use it;
-        'local_a' is equivalent to 'a'. 
-        
-        - The string "rand". In that case, each run will sample an amplitude
-        at random, which in general will differ between runs. 
-        '''
-        if self.a=="rand":
-            return np.random.uniform(0, 1)
-        else:
-            return self.a
 
-            
-def test_fun():
-    a_real = "rand" # 0.5
+def test():
+    
+    a_real = (0, 1)
     Nq_start = 5*10**1
     Nq_target = 10**8
     nruns = 10**2
-    test = testCAE(a_real)
-    test.rmse_evolution(Nq_start, Nq_target, nruns)
+    test = testCAE(a_real, silent = False)
+    test.sqe_evolution_multiple(Nq_start, Nq_target, nruns, save = False)
    
-test_fun()
+if __name__ == "__main__":
+    test()
