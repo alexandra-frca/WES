@@ -220,9 +220,6 @@ class EstimationData():
             stds (list): A sequence of values for the standard deviation.
             warmup (dict): A dictionary containing the warmup configuration
                 (for BAE).
-
-        Returns:
-            None
         """
         if nqs is not None:
             self.Nq_dict[key] = nqs
@@ -249,9 +246,6 @@ class EstimationData():
             stds (list, optional): Additional values for the standard deviation.
             warmup (dict, optional): Additional warmup configuration data
                 (for BAE).
-
-        Returns:
-            None
         """
         if nqs is not None:
             self.Nq_dict[key] += nqs

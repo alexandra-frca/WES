@@ -125,7 +125,7 @@ class MLQAE(BayesianQAE):
             ms = [0] + [2**k for k in evals[:-1]]
         return ms
     
-    def maximize_likelihood(self, hs, finish = True, evals = 5e4, 
+    def maximize_likelihood(self, hs, finish = True, evals = 1e3, 
                             excfrom = None, silent = True):
         # excfrom - exclude from (element and following ones).
         # print("ms hs 2", self.ms[:excfrom], hs[:excfrom])

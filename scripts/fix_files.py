@@ -26,7 +26,7 @@ def fix_datafiles(folder,  old_names, new_modules):
             pickle.dump(data, filehandle)
     print(f"> Fixed files.")
 
-folder = "noiseless" # "noisy"
+folder = "noisy" # "noisy"
 old_names = ["src.utils.dataclasses", "utils.dataclasses", "utils"] 
 new_modules = [src.utils.mydataclasses, src.utils.mydataclasses, src.utils] 
 fix_datafiles(folder, old_names, new_modules)

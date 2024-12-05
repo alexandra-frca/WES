@@ -13,11 +13,16 @@ try:
 except:
      using_colab = False
      
-def data_from_file(filename):
+def data_from_file(filename, silent = False):
     try:
         with open(filename, 'rb') as filehandle: 
-            data = pickle.load(filehandle)
-        print(f"> File {filename} uploaded.")
+            try:
+                data = pickle.load(filehandle)
+            except FileNotFoundError as e:
+                print(f"> {e}. This may be fixable with scripts/fix_files.")
+                sys.exit()
+        if not silent:
+            print(f"> File {filename} uploaded.")
     except FileNotFoundError:
         print(f"> File {filename} NOT uploaded: no such file. [data_from_file]")
         data = None
