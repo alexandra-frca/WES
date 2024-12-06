@@ -25,7 +25,7 @@ def plot_from_folder(folder, silent = False, save = False):
     Plot together all the datasets in the folder 'folder' of the folder 
     'datasets'.
     '''
-    print(f"> Will plot QAE estimation results from folder {folder}.")
+    print(f"> Will plot QAE estimation results from folder '{folder}'.")
     fnlist = dataset_filenames_from_folder(folder)
     stats = ["mean", "median"]
     for stat in stats:
