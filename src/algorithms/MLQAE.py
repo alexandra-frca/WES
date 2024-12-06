@@ -135,7 +135,7 @@ class MLQAE(BayesianQAE):
                                            silent = silent)
         
     def estimate_amplitude(self, model = None, allsteps = False, 
-                           show = False, silent = False):
+                           show = False, silent = False, nevals = 1e3):
         if not silent:
             info = "Qiskit's simulator" if amp is None else "numpy.binomial"
             print(f"> Using {info} for sampling. [MLQAE.estimate_amplitude]")
@@ -154,7 +154,7 @@ class MLQAE(BayesianQAE):
                   " [MLQAE.estimate_amplitude]")
           
         if not allsteps:
-            theta_est = self.maximize_likelihood(hs)
+            theta_est = self.maximize_likelihood(hs, evals = evals)
             a_est = np.sin(theta_est**2)
         else:
             # List of intermediate estimates based on the cumulative data.
@@ -162,7 +162,8 @@ class MLQAE(BayesianQAE):
                 [self.plot_likelihood(hs[:k+1], ttl_extra=f" - step {k}") 
                  for k in range(self.Ncircs)]
                 
-            theta_ests = [self.maximize_likelihood(hs, excfrom = k+1)
+            theta_ests = [self.maximize_likelihood(hs, excfrom = k+1, 
+                                                   evals = nevals)
                           for k in self.evals] 
             
             a_ests = [np.sin(theta_est)**2 for theta_est in theta_ests]
@@ -348,7 +349,8 @@ class TestMLQAE(TesterQAE):
         info.append(f"Ncircs = {self.Ncircs} | nshots = {self.nshots}")
         print_centered(info)
         
-    def sqe_evolution_multiple(self, nruns, Nq_target, seqs, save = True):
+    def sqe_evolution_multiple(self, nruns, Nq_target, seqs, nevals = 1e3, 
+                               save = True):
         '''
         Perform maximum likelihood QAE for LIS and/or EIS (whichever string(s)
         are in 'seqs') and plot the evolution of the MSE with the number of 
@@ -364,7 +366,7 @@ class TestMLQAE(TesterQAE):
         coarse granularity, whereas LIS is pretty thin grained and can get 
         close to any target.
         '''
-        self.print_sqe_evolution_info(seqs, nruns, Nq_target)
+        self.print_sqe_evolution_info(seqs, nruns, Nq_target, nevals)
         # Effective nruns for each seq (could be < runs if KeyboardInterrupt).
         enruns = []
         
@@ -382,14 +384,15 @@ class TestMLQAE(TesterQAE):
         runstr = ";".join([f"{runs}({seq})" for runs,seq in zip(enruns, seqs)])
         
         ed = ExecutionData(self.param_str, estdata, runstr, self.nshots, 
-                           label = "MLQAE", extra_info = f"Nq_{self.Nq_calc}"
-                           + f"≈10^{round(np.log10(Nq_target),1)}")
+                           label = "MLQAE", extra_info = f"nevals_{nevals}" +
+                           f"Nq_{self.Nq_calc}≈10^{round(np.log10(Nq_target),1)}")
         if save:
             ed.save_to_file()
             
         process_and_plot(estdata, processing = "averaging", save = save)
     
-    def rmse_evolution(self, seq, Nq_target, nruns, estdata, bounds = False):
+    def rmse_evolution(self, seq, Nq_target, nruns, estdata, nevals = 1e3, 
+                       bounds = False):
         ''' 
         Auxiliary function for 'sqe_evolution_multiple'.
         
@@ -437,7 +440,7 @@ class TestMLQAE(TesterQAE):
         
         return estdata, nruns
     
-    def sqe_evolution_single(self, seq):
+    def sqe_evolution_single(self, seq, nevals = 1e3):
         ''' 
         Auxiliary function for 'MLQAE_evol_avg'.
         
@@ -457,11 +460,12 @@ class TestMLQAE(TesterQAE):
         M =  QAEmodel(a, Tc = Tc)
         a_ests = MLQAE_instance.estimate_amplitude(model = M, 
                                                    allsteps = True, 
-                                                   silent = True)
+                                                   silent = True, 
+                                                   nevals = 1e3)
         sqe_evol = [(est/a-1)**2 for est in a_ests]
         return MLQAE_instance, sqe_evol
     
-    def print_sqe_evolution_info(self, seqs, nruns, Nq_target):
+    def print_sqe_evolution_info(self, seqs, nruns, Nq_target, nevals):
         '''
         Auxiliary function for 'sqe_evolution_multiple'.
         '''
@@ -471,7 +475,7 @@ class TestMLQAE(TesterQAE):
         # theta = "rand" if self.a=="rand" else np.arcsin(np.sqrt(self.a))
         
         info = ["MLQAE error plot averaged (" +  "/".join(seqs) + ")"]
-        info.append(f"a={self.a} | Tc={self.Tc}")
+        info.append(f"a={self.a} | Tc={self.Tc} | nevals = {nevals}")
         info.append(f"runs = {nruns} | nshots = {self.nshots} | " 
                     f"Nq_target = 10^{round(np.log10(Nq_target),1)}")
         if not self.silent:
@@ -504,12 +508,14 @@ def test(which):
         a = (0,1)
         Tc = None # (2000, 5000)
         nshots = 100
-        nruns = 5
+        nruns = 100
         Nq_target = 5*10**6
-        seqs = ["EIS"]#, "LIS"]
+        nevals = 5e4
+        seqs = ["EIS", "LIS"]
         Nq_calc = "cumul" # 'cumul' or 'last'.
         test = TestMLQAE(a, Tc, nshots, Nq_calc = Nq_calc, silent = False)
-        test.sqe_evolution_multiple(nruns, Nq_target, seqs, save = True)
+        test.sqe_evolution_multiple(nruns, Nq_target, seqs, nevals = nevals, 
+                                    save = True)
     
 if __name__ == "__main__":
     test(1)

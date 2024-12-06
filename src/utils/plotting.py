@@ -640,8 +640,8 @@ def process_nonadapt_data(raw_estdata, stat, by_step = False, every = 2):
         sqe_list = raw_estdata.err_dict[key]
         err_per_step = estimation_errors(sqe_list, stat = stat, 
                                          by_step = by_step)
-        estdata.err_dict[key] = thin_list(err_per_step, 2, 5) # err_per_step
-        estdata.Nq_dict[key] = thin_list(estdata.Nq_dict[key], 2, 5)
+        estdata.err_dict[key] = thin_list(err_per_step, 1, 5) # err_per_step
+        estdata.Nq_dict[key] = thin_list(estdata.Nq_dict[key], 1, 5)
     
     return estdata
 
