@@ -188,7 +188,7 @@ class BayesianQAE(QAA):
             "grid points " + ("+ Nelder-Mead " if finish else "") 
             + "for finding the MLE. [BayesianQAE.maximize_likelihood]")
             first_maximize_likelihood = False
-        # print(ms, hs)
+        
         interval = (0, np.pi/2)
         # 'Finish': whether to improve the result using Nelder–Mead.
         result = opt.brute(objective_function, [interval], Ns=evals, 

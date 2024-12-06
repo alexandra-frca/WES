@@ -127,9 +127,6 @@ class MLQAE(BayesianQAE):
     
     def maximize_likelihood(self, hs, finish = True, evals = 1e3, 
                             excfrom = None, silent = True):
-        # excfrom - exclude from (element and following ones).
-        # print("ms hs 2", self.ms[:excfrom], hs[:excfrom])
-        # print("cms", self.ms[:excfrom])
         return super().maximize_likelihood(self.ms[:excfrom], hs[:excfrom], 
                                            finish = True, evals = evals,
                                            silent = silent)
@@ -154,7 +151,7 @@ class MLQAE(BayesianQAE):
                   " [MLQAE.estimate_amplitude]")
           
         if not allsteps:
-            theta_est = self.maximize_likelihood(hs, evals = evals)
+            theta_est = self.maximize_likelihood(hs, evals = nevals)
             a_est = np.sin(theta_est**2)
         else:
             # List of intermediate estimates based on the cumulative data.
@@ -349,8 +346,7 @@ class TestMLQAE(TesterQAE):
         info.append(f"Ncircs = {self.Ncircs} | nshots = {self.nshots}")
         print_centered(info)
         
-    def sqe_evolution_multiple(self, nruns, Nq_target, seqs, nevals = 1e3, 
-                               save = True):
+    def sqe_evolution_multiple(self, nruns, Nq_target, seqs, nevals, save = True):
         '''
         Perform maximum likelihood QAE for LIS and/or EIS (whichever string(s)
         are in 'seqs') and plot the evolution of the MSE with the number of 
@@ -372,8 +368,9 @@ class TestMLQAE(TesterQAE):
         
         # Create common EstimationData instance to store both results.
         estdata = EstimationData()
-        for seq in seqs:
-            estdata, r = self.rmse_evolution(seq, Nq_target, nruns, estdata)
+        for i,seq in enumerate(seqs):
+            estdata, r = self.rmse_evolution(seq, Nq_target, nruns, estdata, 
+                                             nevals = nevals[i])
             enruns.append(r)
             
             if r > 0:
@@ -418,7 +415,8 @@ class TestMLQAE(TesterQAE):
         for i in range(nruns): 
             pb.update()
             try:
-                MLQAE_instance, sqe_evol = self.sqe_evolution_single(seq)
+                MLQAE_instance, sqe_evol = self.sqe_evolution_single(seq, 
+                                                                     nevals = nevals)
                 sqe_by_run.append(sqe_evol)
             except KeyboardInterrupt:
                 print(f"\n> Keyboard interrupt at run {i}. "
@@ -461,7 +459,7 @@ class TestMLQAE(TesterQAE):
         a_ests = MLQAE_instance.estimate_amplitude(model = M, 
                                                    allsteps = True, 
                                                    silent = True, 
-                                                   nevals = 1e3)
+                                                   nevals = nevals)
         sqe_evol = [(est/a-1)**2 for est in a_ests]
         return MLQAE_instance, sqe_evol
     
@@ -510,11 +508,13 @@ def test(which):
         nshots = 100
         nruns = 100
         Nq_target = 5*10**6
-        nevals = 5e4
+        # Use less evaluations for LIS because the landscape is more regular
+        # (and the cost higher, because there are more data for a given Nq).
+        nevals = [5e4, 5e3]
         seqs = ["EIS", "LIS"]
         Nq_calc = "cumul" # 'cumul' or 'last'.
         test = TestMLQAE(a, Tc, nshots, Nq_calc = Nq_calc, silent = False)
-        test.sqe_evolution_multiple(nruns, Nq_target, seqs, nevals = nevals, 
+        test.sqe_evolution_multiple(nruns, Nq_target, seqs, nevals, 
                                     save = True)
     
 if __name__ == "__main__":
