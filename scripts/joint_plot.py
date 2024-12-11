@@ -4,6 +4,7 @@ Plotting datasets from src/datasets/<folder> together in a graph.
 import os
 import matplotlib.pyplot as plt
 
+from src.algorithms.BAE import fix_aBAE_label
 from src.utils.plotting import plot_err_evol, process, safe_save_fig
 from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
@@ -53,6 +54,10 @@ def get_estdatas(filename_list, stat, silent = False):
     execdatas = [data_from_file(filename, silent) for filename in filename_list]
     labels = [get_label(execdata) for execdata in execdatas]
 
+    for label, exd in zip(labels, execdatas):
+        if label == "BAE":
+            fix_aBAE_label(exd)
+
     estdatas = [execdata.estdata for execdata in execdatas]
     estdatas = [process(estdata, stat, how = PROCESSING[label])
                for label, estdata in zip (labels, estdatas)]
@@ -60,5 +65,5 @@ def get_estdatas(filename_list, stat, silent = False):
 
 # Previously, "canonical" had "none" processing because it was pre-processed.
 if __name__ == "__main__":
-    plot_from_folder("test")
+    plot_from_folder("noisy")
 

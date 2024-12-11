@@ -637,4 +637,5 @@ def test(which):
         Test.sqe_evolution_multiple(mmin, Nq_target, nruns, MLE = True, save = True)
         
 if __name__ == "__main__":
-    test(5)
+    #test(5)
+    print(QAEemulator.m_from_Nq(1e6, 1))

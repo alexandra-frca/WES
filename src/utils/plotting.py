@@ -266,7 +266,6 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
     # Support single estdata input for compatibility with earlier code.
     if type(estdatas) is not list: estdatas = [estdatas]
     
-    
     label = LONG[which].replace("*avgtype*", stat)
     if stat == "mean" and which=="RMSE":
         label = label.replace("mean", "root mean squared")
@@ -331,7 +330,8 @@ def get_logplot(ylabel, title = None, return_fig = False):
         return fig, ax
     return ax
 
-def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0):
+def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0, 
+                       Nqmax = None):
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
                            zoom=0.5 if iconpath=="jface.png" else 0.05)
@@ -342,7 +342,14 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0):
         x, y = Nq_dict[key], err_dict[key]
         
         first_i = next(i for i,v in enumerate(x) if v >= Nqmin)
-        x, y = x[first_i:], y[first_i:]
+        
+        if Nqmax and x[-1] > Nqmax:
+            # Without the second condition, we last_i = 0 if no elements <= max.
+            last_i = -next(i for i,v in enumerate(reversed(x)) if v <= Nqmax)
+        else:
+            last_i = len(x)
+
+        x, y = x[first_i:last_i], y[first_i:last_i]
         
         if iconpath is not None:
             # Replace markers with a specific icon, and do not caption it.
@@ -359,7 +366,6 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0):
         ax.scatter(x, y, s=size, marker=marker, color=color, label=label,
                    edgecolors = 'black', linewidth = 0.75)
     return id
-        
 
 MARKER_SHAPES = {'classical': 's',
                  'canonical': 'o',
@@ -372,6 +378,7 @@ MARKER_SHAPES = {'classical': 's',
                  'IQAE - chernoff': 'P',
                  'mIQAE - chernoff': 'X',
                  'BAE': '8',
+                 'aBAE': '8',
                  'adaptive': '8'}
      
 MARKER_COLORS = {'classical': 'firebrick',
@@ -383,8 +390,9 @@ MARKER_COLORS = {'classical': 'firebrick',
                  'SQAE #2': 'yellow',
                  'FQAE': 'orange',
                  'IQAE - chernoff': 'violet',
-                 'mIQAE - chernoff': 'white',
+                 'mIQAE - chernoff': '#DC143C',
                  'BAE': 'navy',
+                 'aBAE': '#008080',
                  'adaptive': 'navy'}
 
 MARKER_SIZES = {'classical': 82,
@@ -398,6 +406,7 @@ MARKER_SIZES = {'classical': 82,
                 'IQAE - chernoff': 180,
                 'mIQAE - chernoff': 180,
                 'BAE': 80,
+                'aBAE': 80,
                 'adaptive': 80}
 
 def label_from_key(key):

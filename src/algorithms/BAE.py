@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import scipy.optimize as opt
 from copy import deepcopy
+import re 
 
 from src.algorithms.samplers import get_sampler
 from src.utils.running import BAERunData
@@ -422,3 +423,16 @@ class BAE():
         print(f"> {strat} SMC-{sampler.str} estimate: a = "
               f"{sigdecstr(mean, NDIGITS)} ± {sigdecstr(std, NDIGITS)}")
         return mean, std
+
+def fix_aBAE_label(execdata):
+    s = execdata.extra_info
+    match = re.search(r",ut=(\w{3})", s)
+    if match:
+        result = match.group(1)
+        if result=="ESS":
+            old = "BAE"
+            new = "aBAE"
+            execdata.label = new
+            for d in execdata.estdata.unpack_data():
+                if d:
+                    d[new] = d.pop(old)
