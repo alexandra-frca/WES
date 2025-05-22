@@ -16,7 +16,7 @@ NDIGITS = 4
 
 class TestBAE():
     def __init__(self, a, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
-                 silent = False, save = True):
+                 silent = False, save = True, show = True):
         self.a = a
         # Keep full Tc dicts just for the prints; organize rest of info into
         # other attributes.
@@ -31,6 +31,7 @@ class TestBAE():
         self.sampler_kwargs = sampler_kwargs
         self.silent = silent
         self.save = save
+        self.show = show
 
     def param_str(self):
         a_str = (self.rand_pstr(self.a) if isinstance(self.a,tuple)
@@ -135,7 +136,7 @@ class TestBAE():
             self.print_stats_several(final, final_dscr)
             
         raw_estdata = self.create_estdata(*full)
-        process_and_plot(raw_estdata, save = self.save)
+        process_and_plot(raw_estdata, save = self.save, show = self.show)
 
         if self.save:
             exdata = self.create_execdata(raw_estdata, nruns)
@@ -165,6 +166,12 @@ class TestBAE():
                                                maxPT = self.maxPT)
         nsqes = [(est/a - 1)**2 for est in means]
         nstds = [sqe/mean for sqe,mean in zip(stds, means)]
+
+        ctrls = Est.ctrls_list
+        devs = [np.abs(est - a) for est in means]
+        # for i, (ctrl, dev) in enumerate(zip(ctrls,devs)):
+        #    print(f"> Iteration {i}: ctrl = {ctrls[i]}, error = {devs[i]}.")
+
         print("> Final (normalized) RMSE: ", sigdecstr(nsqes[-1]**0.5, NDIGITS))
         print("> Final (normalized) std : ", sigdecstr(nstds[-1], NDIGITS))
 
@@ -250,59 +257,52 @@ class TestBAE():
         sqes_warmup = [sqes_all[0]]
         return sqes_warmup, nqs_all, sqes_all
 
-def test_evol(which):
-    '''
-    For which == 1, test multiple runs of Bayesian adaptive QAE and plot the 
-    RMSE as a function of the number of queries.
+def test_evol(save, show):
+    # If a is a tuple, it's picked at random from the interval for each run. 
+    # If it is a number, it will be used direcly.
+    # Tcrange could be different from Tc if we want to fix Tc but have a 
+    # wider prior for the Tc estimation.
+    Tcrange = None # (2000, 5000)
+    a = 0.17 # (0,1)  
+    Tc = Tcrange 
+    maxPT = 10**8
+    nruns = 1
+    sampler_str = "RWM"
 
-    For which == 2, upload dataset from a file.
-    
-    For which == 3, upload dataset from multiple files.
-    '''
-    if which == 1:
-        # If a is a tuple, it's picked at random from the interval for each run. 
-        # If it is a number, it will be used direcly.
-        # Tcrange could be different from Tc if we want to fix Tc but have a 
-        # wider prior for the Tc estimation.
-        Tcrange = None # (2000, 5000)
-        a = (0,1)  
-        Tc = Tcrange 
-        maxPT = 2*10**6
-        nruns = 1
-        sampler_str = "RWM"
+    Tc_opts = {"Tc": Tc,
+                "Tc_precalc": True if Tc else False,
+                "known_Tc": False,
+                "range": Tcrange}
 
-        Tc_opts = {"Tc": Tc,
-                    "Tc_precalc": True if Tc else False,
-                    "known_Tc": False,
-                    "range": Tcrange}
+    # Strategy for the adaptive optimization.
+    strat = {"wNs": 10,
+                "Ns": 1,
+                "TNs": 500,
+                "k": 2,
+                "Nevals": 50,
+                "erefs": 3,
+                "ethr": 3,
+                "cap": False,
+                "capk": 2}
+    # Sampler arguments.
+    sampler_kwargs = {"Npart": 2000,
+                        "thr": 0.5,
+                        "var": "theta",
+                        "ut": "var",
+                        "log": True,
+                        "res_ut": False,
+                        "plot": False}
+    if sampler_str=="RWM":
+        sampler_kwargs["c"] = 2.38
+    if sampler_str=="LW":
+        sampler_kwargs["a_LW"] = 0.98
 
-        # Strategy for the adaptive optimization.
-        strat = {"wNs": 10,
-                  "Ns": 1,
-                  "TNs": 500,
-                  "k": 2,
-                  "Nevals": 50,
-                  "erefs": 3,
-                  "ethr": 3,
-                  "cap": False,
-                  "capk": 2}
-        # Sampler arguments.
-        sampler_kwargs = {"Npart": 2000,
-                          "thr": 0.5,
-                          "var": "theta",
-                          "ut": "var",
-                          "log": True,
-                          "res_ut": False,
-                          "plot": False}
-        if sampler_str=="RWM":
-            sampler_kwargs["c"] = 2.38
-        if sampler_str=="LW":
-            sampler_kwargs["a_LW"] = 0.98
+    Test = TestBAE(a, Tc_opts, strat, maxPT, sampler_str,
+                        sampler_kwargs, save = save, show = show)
 
-        Test = TestBAE(a, Tc_opts, strat, maxPT, sampler_str,
-                            sampler_kwargs, save = True)
-
-        Test.sqe_evolution_multiple(nruns)
+    Test.sqe_evolution_multiple(nruns)
 
 if __name__ == "__main__":
-    test_evol(1)
+    save = False
+    show = True
+    test_evol(save, show)

@@ -11,8 +11,8 @@ from src.utils.files import data_from_file
 strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
 def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
-                    add_after = None, full_output = False, strategy = "y_mean",
-                    logdomain = False, silent = True):
+                    add_after = None, full_output = False, return_err = False,
+                    strategy = "y_mean", logdomain = False, silent = True):
     '''
     Split (x, y) data points into groups depending on the x coordinate,
     and calculate the average xs and ys**ypower for each group.
@@ -31,12 +31,26 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     # xrange = min(xs) - 1, max(xs) + 1
     xrange = min(xs), max(xs)
     
-    if fixed_point is None:
-        assert strategy != "slope", "slope strategy requires fixed_point input"
-        df = DataFrame({"x": xs, "y": ys})
+    if strategy not in ["slope_mean", "slope_median", "fit", "spline"]:
+         df = DataFrame({"x": xs, "y": ys})
     else:
-        # y coordinates are MSEs, while fixed_point[0] is MSE**0.5.
+        if fixed_point is None:
+            # Use K% first points to define fixed point, necessary for the 
+            # slope strategy.
+            K = 1
+            xs, ys = np.array(xs), np.array(ys)
+            N = len(xs)
+            imax = int(N*K/100)
+            si = np.argsort(xs)
+            ii = si[:imax]
+
+            fxs = xs[ii]
+            fys = ys[ii]
+            fixed_point = np.mean(fxs), np.mean(fys**0.5)
+
+        # y coordinates are MSEs, while fixed_point[1] is MSE**0.5.
         fixed_point_sq = (fixed_point[0], fixed_point[1]**2)
+            
         slopes = [calculate_slope(fixed_point_sq, (x, y)) for x,y in zip(xs,ys)]
         df = DataFrame({"x": xs, "y": ys, "slope": slopes})
     
@@ -58,13 +72,12 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
         df['x'] = np.log(df['x'])
         df['y'] = np.log(df['y'])
     
+    grouped = df.groupby(['bin'], observed = True)
     if strategy=="y_mean" or strategy=="slope_mean":
-        # Observed irrelevant (not Categoricals), just to silence deprecation warning.
-        df = df.groupby(['bin'], observed = True).mean().dropna()
+        df = grouped.mean().dropna()
     
     if strategy=="y_median" or strategy=="slope_median":
-        # Observed irrelevant (not Categoricals), just to silence deprecation warning.
-        df = df.groupby(['bin'], observed = True).median().dropna()
+        df = grouped.median().dropna()
 
     if logdomain:
         df['x'] = np.exp(df['x'])
@@ -75,7 +88,7 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     
     if strategy in ["y_mean", "y_median"]:
         ys = df['y'].values**ypower
-    if strategy=="slope_mean" or strategy=="slope_median":
+    if strategy in ["slope_mean", "slope_median"]:
         ys = eval_power_function(df['x'], df['slope'], fixed_point) 
         ys = np.array(ys.tolist())**0.5
     if strategy=="fit":
@@ -109,6 +122,14 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
             # endpoints (do [1:-1]) because they're added automatically, see:
             # print("knots", list(map(np.log10,sp.get_knots())))
             t = np.logspace(*xrange, nbins, base = np.e)[1:-1]
+             # Remove duplicates or error 'x must be increasing if s>0'.
+            xs = np.array(xs)
+            ys = np.array(ys)
+            _, unique_indices = np.unique(xs, return_index=True)
+            xs = xs[unique_indices]
+            ys = ys[unique_indices]
+
+            
             sp = interp.LSQUnivariateSpline(xs,ys,t)
             
         binwidth = (xrange[1]-xrange[0])/nbins
@@ -125,6 +146,15 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     
     if full_output:
         return xs, ys, bins, grouped_points
+    elif return_err:
+        assert strategy == "y_mean", logdomain == False
+        std_df = grouped.std()
+        # Standard error of the mean.
+        # std_df = std_df / grouped.count().pow(0.5)
+        dx = std_df['x'].values
+        # Error propagation. 
+        dy = std_df['y'].values * ypower * (grouped.mean()['y'].values ** (ypower - 1))
+        return xs, ys, dx, dy
     else:
         return xs, ys
     

@@ -200,7 +200,7 @@ def test(which):
         epsmax = 1e-2
         epsmin = 1e-6
         alpha = 0.05
-        runs = 100
+        runs = 1
         test = TestQAES(a, Tc,  alpha)
         test.sqe_evolution_multiple(runs, epsmin, epsmax, save = True)
         

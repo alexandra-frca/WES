@@ -232,6 +232,9 @@ class EstimationData():
         if warmup is not None:
             self.warmup_dict[key] = warmup
 
+    def get_labels(self):
+        return list(self.Nq_dict.keys())
+
     def append_data(self, key, nqs = None, lbs = None, errs = None, stds = None,
                     warmup = None):
         """

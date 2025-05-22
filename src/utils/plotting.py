@@ -197,7 +197,7 @@ def average_first_N(l, N):
     l = [m] + l[N:]
     return l
 
-def process_and_plot(raw_estdata, save = True, processing = "binning",
+def process_and_plot(raw_estdata, save = True, show = True, processing = "binning",
                      stats = ["mean", "median"], title = None):
     '''
     Up to 2 plots: one with the root mean squared error, one with the median
@@ -206,8 +206,8 @@ def process_and_plot(raw_estdata, save = True, processing = "binning",
     assert processing in ["binning", "averaging", "averaging2", "none"]
     for stat in stats:
         estdata = process(raw_estdata, stat, processing)
-        plot_est_evol(estdata, save = save, stat = stat, exp_fit = False, 
-                      title = title)
+        plot_est_evol(estdata, save = save, show = show, stat = stat, 
+                      exp_fit = False, title = title)
     return estdata
 
 def process(raw_estdata, stat, how = "binning"):
@@ -241,13 +241,15 @@ def plot_est_evol(*args, **kwargs):
     'lb_dict' property of the 'estdata' objects).
     '''
     save = kwargs.pop('save', True)
+    show = kwargs.pop('show', True)
     ys = ["RMSE", "std"]
     for y in ys:
         id = plot_err_evol(y, *args, **kwargs)
         if id is not None:
             if save:
                 safe_save_fig(id + "_est_evol")
-            plt.show()
+            if show:
+                plt.show()
         else:
             plt.close()
     
@@ -257,7 +259,7 @@ LONG =  {"RMSE": "*avgtype* error (normalized)",
 def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit", 
                   limits = True, CRbounds = False, plot_fit = False, 
                   iconpath = None, exp_fit = True, lims = None,
-                  title = None): 
+                  title = None, plotlims = True): 
     '''
     Plot either the evolution of either the true error, given by the RMSE 
     (which = "RMSE"), or its estimate, given by the standard deviation 
@@ -282,7 +284,7 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
             return 
         id = plot_error_scatter(Nq_dict, y_dict, ax, iconpath)
     
-    if len(estdatas) == 1:
+    if len(estdatas) == 1 and plotlims:
         assert not estdata.is_empty()
         # Plot the SQL and HL, unless there are several datasets.
         plot_limits(Nq_dict, y_dict, ax, yintercept, label)

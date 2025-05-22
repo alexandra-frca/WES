@@ -21,14 +21,13 @@ PROCESSING = {'classical': 'none',
                 'mIQAE - chernoff': 'binning',
                 'BAE': 'binning'}
 
-def plot_from_folder(folder, silent = False, save = False):
+def plot_from_folder(folder, stats, silent = False, save = False):
     '''
     Plot together all the datasets in the folder 'folder' of the folder 
     'datasets'.
     '''
     print(f"> Will plot QAE estimation results from folder '{folder}'.")
     fnlist = dataset_filenames_from_folder(folder)
-    stats = ["mean", "median"]
     for stat in stats:
         estdatas = get_estdatas(fnlist, stat, silent)
         plot_err_evol("RMSE", estdatas, stat)
@@ -65,5 +64,7 @@ def get_estdatas(filename_list, stat, silent = False):
 
 # Previously, "canonical" had "none" processing because it was pre-processed.
 if __name__ == "__main__":
-    plot_from_folder("noisy")
+    # plot_from_folder("noiseless", stats = ["mean", "median"])
+    # plot_from_folder("noisy", stats = ["mean", "median"])
+    plot_from_folder("ESS", stats = ["median"])
 

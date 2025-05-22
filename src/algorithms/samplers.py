@@ -481,7 +481,9 @@ class SMCsampler():
         # print("> ESS after each single-shot update (immediately after re-weighting): ", 
         #       ess_list)
         print("> Resampled at measurements (single shot): ", self.resampled_list)
-        print("> 5 smallest registered ESS: ", k_smallest_tuples(ess_list, 5, sortby=1))
+        # Remove 'np.float64' part for printing.
+        floatlist = [(i,float(ess)) for i,ess in ess_list] 
+        print("> 5 smallest registered ESS: ", k_smallest_tuples(floatlist, 5, sortby=1))
         
     
 class LiuWestSampler(SMCsampler):
@@ -497,7 +499,7 @@ class LiuWestSampler(SMCsampler):
                       " [LiuWestSampler]")
             first_init = False
             
-    def resampler(self, old_locs, data, truncated = False):
+    def resampler(self, data, truncated = False):
         '''
         The data are not used but we need them in the signature.
         
@@ -506,7 +508,7 @@ class LiuWestSampler(SMCsampler):
         '''
         currmean, currstd = self.mean_and_std()
         a = self.a_LW
-        means = a*old_locs+(1-a)*currmean
+        means = a*self.locs+(1-a)*currmean
         h = (1-a**2)**0.5
         std = h*currstd
         
@@ -721,8 +723,10 @@ class MetropolisSampler(SMCsampler):
     
     def print_stats(self):
         super().print_stats()
-        print(f"> Ordered acceptance rates ({len(self.acc_rates)}): ", 
-              self.acc_rates)
+        # Remove 'np.float64' part for printing.
+        floatlist = [float(acc) for acc in self.acc_rates] 
+        print(f"> Ordered acceptance rates ({len(floatlist)}): ", 
+              floatlist)
         avg = np.sum(self.acc_rates)/len(self.acc_rates)
         print(f"> Average acceptance rate: {avg*100:.1f}%")
         # print(f"> Ordered ESS: ", self.ess_list)

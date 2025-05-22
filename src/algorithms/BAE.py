@@ -62,6 +62,7 @@ class BAE():
         self.cmin = None
         self.cmax = None
         self.double = False
+        self.ctrls_list = []
         self.exp_list = []
         self.pman = PrintManager()
 
@@ -133,6 +134,7 @@ class BAE():
         maxs = 0
         while rd.latest_CPT < maxPT:
             ctrl_opt, max_flag = self.choose_control(sampler, **strat)
+            self.ctrls_list.append(ctrl_opt)
             if max_flag:
                 maxs += 1
                 if maxs > strat["ethr"] and not self.capped:
