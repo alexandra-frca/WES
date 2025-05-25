@@ -254,13 +254,13 @@ class BAE():
             self.double_grid()
 
         if stoch:
-            grid = np.round(np.random.uniform(self.cmin, self.cmax, int(Nevals)))
+            grid = np.random.uniform(self.cmin, self.cmax, int(Nevals))
             ctrl_opt = self.discrete_optimization(grid, sampler)
             # Find the 'erefs' largest grid point.
             thr = np.partition(grid, -erefs)[-erefs]
             max_flag = True if ctrl_opt >= thr else False
         else:
-            grid = np.round(np.linspace(self.cmin, self.cmax, num = int(Nevals)))
+            grid = np.linspace(self.cmin, self.cmax, num = int(Nevals))
             ctrl_opt = self.discrete_optimization(grid, sampler)
             max_flag = True if ctrl_opt in grid[-erefs:] else False
 

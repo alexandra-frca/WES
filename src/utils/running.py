@@ -8,6 +8,7 @@ from time import perf_counter
 from typing import Callable
 from dataclasses import dataclass, field
 import numpy as np 
+# import concurrent.futures
 
 from src.utils.files import PrintsToFile
 from src.algorithms.samplers import SMCsampler
@@ -53,8 +54,8 @@ class Runner():
         to see what is happening without repeating it hundreds of times.
         - For redirect = 2, all prints are saved to a file.
     '''
-    def __init__(self, f, nruns, process_fun = None, redirect = 0, 
-                 silent = False, save = True):
+    def __init__(self, f, nruns, process_fun = None, timeout = None,
+                redirect = 0, silent = False, save = True):
         '''
         Untimed: just print the progress bar. 
         '''
@@ -64,6 +65,7 @@ class Runner():
             self.process_fun = lambda *args: None
         else:
             self.process_fun = process_fun
+        self.timeout = timeout 
         self.redirect = redirect
         self.pb = ProgressBar(nruns)
         assert redirect in [0, 1, 2]
@@ -76,7 +78,7 @@ class Runner():
     def run(self, *args, **kwargs):
         return self.run_timed(*args, **kwargs)
             
-    # Can't use decorator because we must need self.nruns for the average.
+    # Can't use decorator because we need self.nruns for the average.
     def run_timed(self, *args, **kwargs):
         timer_all = Timer(extra_info = "average per run", silent = self.silent)
         r = self.run_untimed(*args, **kwargs)
@@ -93,6 +95,7 @@ class Runner():
     def run_untimed(self, *args, **kwargs):
         for i in range(self.nruns):
             try:
+                # input(f"*********** Run {i}")
                 r = self.run_one(i, *args, **kwargs)
                 if isinstance(r, tuple):
                     self.process_fun(*r)
@@ -116,7 +119,25 @@ class Runner():
         if self.redirect in [1, 2]:
             with self.tofile:
                 return self.run_one_aux(i, *args, **kwargs)
-            
+    '''
+    @Timed(extra_info = "entire run")
+    def run_one_aux(self, i, *args, **kwargs):
+        print(f"> Run {i}.")
+        while True:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                future = executor.submit(self.f, i, *args, **kwargs)
+                try:
+                    r = future.result(timeout=self.timeout) 
+                    break
+                except concurrent.futures._base.TimeoutError:
+                    print("***** Timeout; restarting iteration. *****")
+                    executor.shutdown(cancel_futures=True)
+                    # future.cancel()
+
+        print(f"> Run {i} has been completed.")
+        return r
+    
+    '''
     @Timed(extra_info = "entire run")
     def run_one_aux(self, i, *args, **kwargs):
         print(f"> Run {i}.")

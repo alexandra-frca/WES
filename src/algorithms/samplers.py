@@ -23,9 +23,8 @@ INIT = {var: False for var in ["a", "theta", "Tc"]}
 
 class SMCsampler():
     def __init__(self, model: LikelihoodModel, Npart = 1000,  thr = 0.5, 
-                 var="a", ut="var", Tc_est = None, plot = False, log = False, 
+                 var = "w", ut = "var", Tc_est = None, plot = False, log = False, 
                  prior = "uniform", res_ut = False):
-        assert var in ["a", "theta", "Tc"]
         assert ut in ["var", "ESS"]
         assert prior in ["uniform", "normal"]
 
@@ -61,17 +60,6 @@ class SMCsampler():
         self.ess_list = []
         self.resampled_list = []
         
-        # self.first_underflow = True
-
-        
-        if INIT[var]:
-            print("> Initialized a sampler with:")
-            info = [f"Nparticles = {Npart} | tgESS = {thr}", 
-                    f"internal variable: {var} (range = {self.range})",
-                    f"utility function: {ut}"]
-            print_centered(info)
-            INIT[var] = False
-
     def init_prior(self, dist):
         if dist == "uniform":
             self.locs = np.random.uniform(*self.range, size = self.Npart)
@@ -300,14 +288,11 @@ class SMCsampler():
     
     @property
     def param_of_interest(self):
-        if self.var in ["a", "Tc"]:
+        if self.var in ["w", "Tc"]:
             param = self.locs
-        elif self.var=="theta":
-            param = self.model.a_from_theta(self.locs)
         else:
-            raise Exception("`var`must be 'a' or 'theta' or 'Tc'.")
+            raise Exception("`var`must be 'w' or 'Tc'.")
         return param
-    
     
     def mean_and_std(self):
         mean = self.mean()
@@ -317,6 +302,10 @@ class SMCsampler():
             print(f"> Variance is zero. Mean is {mean}.")
             self.print_lists()
         return mean, np.sqrt(var)
+    
+    def random_duo(self):
+        duo = rng.choice(self.locs, size=2, p=self.rws, replace = False)
+        return duo
 
     def variance(self, mean = None):
         if mean is None:

@@ -100,93 +100,35 @@ class LikelihoodModel(ABC):
         plot_graph(xs, ys, startat0 = None if log else "y",
                         title=title, xlabel=xlabel, ylabel=ylabel)
 
-class PrecessionModel(LikelihoodModel):
-    def __init__(self, w: float):
-        self.frequency = w
-
-    def measure(self, t: float, nshots = 1) -> int:
-        if nshots !=1:
-            print("> You haven't implemented the precession model for several "
-                  "shots. [PrecessionModel.measure]")
-            return
-        
-        w = self.frequency
-        p1 = np.sin(w*t/2)**2
-        outcome = np.random.binomial(1, p1)
-        return outcome
-        
-    def likelihood(self, w: float, t: float, outcome: int, nshots = 1):
-        if nshots !=1:
-            print("> You haven't implemented the precession model for several "
-                  "shots. [PrecessionModel.measure]")
-            return
-        # Likelihood based on a single datum, i.e. a (t,outcome) tuple. 
-        L = np.sin(w*t/2)**2 if outcome==1 else np.cos(w*t/2)**2
-        return L
     
-    def loglikelihood(self, w: float, t: float, 
-                                 outcome : int, nshots = 1) -> float:
-        if nshots !=1:
-            print("> You haven't implemented the precession model for several "
-                  "shots. [PrecessionModel.loglikelihood]")
-            return
-        # Loglikelihood based on a single datum, i.e. a (t,outcome) tuple. 
-        L = 2*np.log(np.abs(np.sin(w*t/2))) if outcome==1 \
-            else 2*np.log(np.abs(np.cos(w*t/2)))
-        return L
-    
-first_QAEmodel = True
+first_PrecessionModel = True
 first_set_Tc_est = True
-class QAEmodel(LikelihoodModel):
-    def __init__(self, a: float, Tc = None, Tcrange = None):
-        self.amplitude = a
+class PrecessionModel(LikelihoodModel):
+    def __init__(self, w: float, wmax, Tc = None, Tcrange = None):
+        self.w = w
+        self.wmax = wmax
         self.Tc = Tc
         self.Tc_est = None
         # For the likelihood boundaries.
         self.Tcrange = Tcrange
-        global first_QAEmodel
-        if self.Tc is not None and first_QAEmodel:
+        global first_PrecessionModel
+        if self.Tc is not None and first_PrecessionModel:
             print(f"> Using discrete coherence time Tc = {self.Tc}."
-                  " [QAEmodel.measure]")
-            first_QAEmodel = False
+                  " [PrecessionModel.measure]")
+            first_PrecessionModel = False
             
     def get_range(self, var):
         '''
         Upper bound; lower to be assumed zero except for Tc, (tuple).
         '''
-        assert var in ["a", "theta", "Tc"]
-        if var=="a":
-            return (0, 1)
-        if var=="theta":
-            return (0, np.pi/2)
+        assert var in ["w", "Tc"]
+        if var=="w":
+            return (0, self.wmax)
         if var=="Tc":
             return self.Tcrange
-        
-    def print_values(self, value, var, info = ""):
-        assert var in "a", "theta"
-        p1 = self.value_str(value, var)
-        if var == "a":
-            p2 = self.value_str(self.theta_from_a(value), "theta")
-        else:
-            p2 = self.value_str(self.a_from_theta(value), "a")
-        
-        print(f"> {info} {p1} ({p2}).")
-        
+    
     def value_str(self, value, var):
         return f"{var} = {value}"
-        
-        
-    @staticmethod
-    def theta_from_a(a):
-        return np.arcsin(np.sqrt(a))
-    
-    @staticmethod
-    def a_from_theta(theta):
-        return np.sin(theta)**2
-        
-    @property
-    def theta(self):
-        return np.arcsin(np.sqrt(self.amplitude))
     
     def set_Tc_est(self, Tc_est):
         '''
@@ -196,25 +138,20 @@ class QAEmodel(LikelihoodModel):
         self.Tc_est = Tc_est
         if first_set_Tc_est:
             print(f"> Set Tc_est = {Tc_est:.0f}. This will be used for the "
-                  "likelihood calculations [QAEmodel.measure].") 
+                  "likelihood calculations.") 
         
-    def measure(self, m: int, nshots, var = "a", prt = False) -> int:
-        '''
-        Amplify by applying the Grover operator 'm' times, then measure.
-        Tc: "discrete coherence time", roughly in units of Grover operator 
-        duration.
-        '''
-        assert var in ["a", "theta", "Tc"]
+    def measure(self, t: float, nshots, var = "w", prt = False) -> int:
+        assert var in ["w", "Tc"]
         if var == "Tc":
-            p1 = (1+np.exp(-m/self.Tc))/2
+            p1 = (1+np.exp(-t/self.Tc))/2
         else:
-            arg = (2*m+1)*self.theta
+            arg = t*self.w/2
             p1 = np.sin(arg)**2
             if self.Tc is not None:
                 p1 = self.damp_fun(m, p1, "real")
                 
         if prt:
-            print(f"> p1 = {p1}. [QAEmodel.measure]")
+            print(f"> p1 = {p1}. [PrecessionModel.measure]")
         hits = np.random.binomial(nshots, p1)
         return hits
     
@@ -254,37 +191,35 @@ class QAEmodel(LikelihoodModel):
         dfun = exps*fun + (1 - exps)/2
         return dfun
         
-    def likelihood(self, param: float, m: int, hits: int, nshots: int, 
-                   var = "a", prt = False):
+    def likelihood(self, param: float, t: float, hits: int, nshots: int, 
+                   var = "w", prt = False):
         '''
         Likelihood based on a single datum, i.e. a (m,# 1 outcomes) tuple.
-        var: wether 'param' is "a" or "theta".
+        var: wether 'param' is "w" or "Tc".
         '''
         
         if var == "Tc":
-            p1 = ((1+np.exp(-m/param))/2)
+            p1 = ((1+np.exp(-t/param))/2)
             if prt:
-                print(f"> p1 = {p1}. [QAEmodel.likelihood - Tc]")
+                print(f"> p1 = {p1}. [PrecessionModel.likelihood - Tc]")
             L = self.likelihood_multishot(p1, nshots, hits)
             return L 
         
-        if var == "a":
-            theta = np.arcsin(np.sqrt(param))
-        elif var == "theta":
-            theta = param
+        elif var == "w":
+            w = param
         else:
-            raise Exception("`var` must be 'a' or 'theta' or 'Tc'.")
+            raise Exception("`var` must be 'w' or 'Tc'.")
             
-        L = self.likelihood_theta(theta, m, hits, nshots)
+        L = self.likelihood_w(w, t, hits, nshots)
         return L
 
-    def likelihood_theta(self, theta, m, hits, nshots):
-        arg = (2*m+1)*theta
+    def likelihood_w(self, w, t, hits, nshots):
+        arg = t*w/2
         p1 = np.sin(arg)**2
         if self.Tc_est is not None:
-            p1 = self.damp_fun(m, p1, "est")
+            p1 = self.damp_fun(t, p1, "est")
         L = self.likelihood_multishot(p1, nshots, hits)
-        L = self.enforce_domain(theta, L, "theta")
+        L = self.enforce_domain(w, L, "w")
         return L
     
     @staticmethod
@@ -299,51 +234,33 @@ class QAEmodel(LikelihoodModel):
     
     def batch_likelihood(self, lparam, data, var = "a", **kwargs):
         '''
-        For a and theta, log-likelihood; and return lparam, because some may
+        For w, log-likelihood; and return lparam, because some may
         be removed if zero likelihood.
         '''
         ctrls, outcomes = np.array(data.ctrls), np.array(data.outcomes)
         if var=="Tc":
             return self.batch_likelihood_Tc(lparam, ctrls, outcomes)
-        if var=="a":
-            thetas = self.thetas_from_a(lparam)
-        elif var == "theta":
-            thetas = lparam
+        elif var == "w":
+            ws = lparam
         else:
-            raise Exception(f"`var`must be 'a' or 'theta' or 'Tc', not {var}.")
+            raise Exception(f"`var`must be 'w' or 'Tc', not {var}.")
             
-        ls_joint = self.batch_likelihood_thetas(thetas, ctrls, outcomes, 
+        ls_joint = self.batch_likelihood_ws(ws, ctrls, outcomes, 
                                                 **kwargs)
             
         return ls_joint
     
-    '''
-    Previous (no log likelihoods).
-    def batch_likelihood_thetas(self, thetas, ctrls, outcomes, Nsshots):
-    # Rows are associated with thetas, columns with ctrls.
-    args = np.outer(thetas, 2*ctrls+1)
-    sin2 = self.sin2_catch(args, thetas)
-    if self.Tc_est is not None:
-        sin2 = self.damp_fun(ctrls, sin2, "est")
-    
-    Ls_joint = np.prod(sin2**outcomes*(1-sin2)**(Nsshots-outcomes), 
-                                axis = 1)
-        
-    thetas, Ls_joint = self.enforce_domain(thetas, Ls_joint, "theta")
-    return Ls_joint
-    '''
-    
-    def batch_likelihood_thetas(self, thetas, ctrls, outcomes, log, info):
+    def batch_likelihood_ws(self, ws, ctrls, outcomes, log, info):
         '''
         Loglikelihoods are returned. 
         
         'info': which likelihoods are being calculated, e.g. MCMC new or old,
         to print warning if some are zero.
         '''
-        # Matrix; rows are associated with thetas, columns with ctrls.
-        args = np.outer(thetas, 2*ctrls+1)
+        # Matrix; rows are associated with ws, columns with ctrls.
+        args = np.outer(ws, ctrls/2)
         # Likelihoods conditional on outcome 1.
-        L1 = self.sin2_catch(args, thetas)
+        L1 = self.sin2_catch(args, ws)
         
         if self.Tc_est is not None:
             L1 = self.damp_fun(ctrls, L1, "est")
@@ -352,25 +269,25 @@ class QAEmodel(LikelihoodModel):
         L = L1**outcomes*(1-L1)**(1-outcomes)
         
         if log:
-            LL = self.logl_catch(L, thetas, info)
-            # Loglikelihoods. List with same length as thetas; each row 
+            LL = self.logl_catch(L, ws, info)
+            # Loglikelihoods. List with same length as ws; each row 
             # condensed to a joint number.
             lls = np.sum(LL, axis=1)
             # Set likelihood of out of bounds parameters to 0 (log = -inf).
-            lls = self.enforce_domain(thetas, lls, "theta", log = True)
+            lls = self.enforce_domain(ws, lls, "w", log = True)
             return lls
         else: 
             ls = np.prod(L, axis=1)
-            ls = self.enforce_domain(thetas, ls, "theta")
+            ls = self.enforce_domain(ws, ls, "w")
             return ls
         
         # print("ls1", ls[:10])
         # print("ls2", np.exp(lls)[:10])
         # input()
     
-    def logl_catch(self, L, thetas, info, print_which = False):
+    def logl_catch(self, L, ws, info, print_which = False):
         '''
-        Ls is a matrix; element (i,j) = likelihood of theta_i for experiment j.
+        Ls is a matrix; element (i,j) = likelihood of w_i for experiment j.
         '''
         def cleanup(ls, print_which = False):
             # Likelihood should never be zero for old particles.
@@ -380,9 +297,9 @@ class QAEmodel(LikelihoodModel):
             # Joint likelihood is zero if it is zero for any experiment.
             row_is_zero = np.any(L == 0, axis=1)
             zero_prob_params = np.sum(row_is_zero)
-            zeros_pc = 100*zero_prob_params/len(thetas)
+            zeros_pc = 100*zero_prob_params/len(ws)
             print(f"> {zeros_pc:.1f}% of {info} likelihoods were zero. "
-                  "[QAEmodel.logl_catch]")
+                  "[PrecessionModel.logl_catch]")
             if np.isclose(zeros_pc, 100):
                 print("> Quitting.")
                 exit()
@@ -391,32 +308,25 @@ class QAEmodel(LikelihoodModel):
                 print("> For: ")
                 # Nonzero gets indices. Returns a tuple for the dimensions.
                 for i in np.nonzero(row_is_zero)[0]:
-                    print(f"{thetas[i] = }", end = " | ")
+                    print(f"{ws[i] = }", end = " | ")
                 # input()
         
         assert np.all(L >= 0)
-        assert L.shape[0] == len(thetas)
+        assert L.shape[0] == len(ws)
         lls = np_invalid_catch(f = np.log,
                              largs = [L], 
                              errdesc = ["divide by zero encountered in log"], 
                              cleanup = cleanup,
-                             caller = "QAEmodel.logl_catch")
+                             caller = "PrecessionModel.logl_catch")
         return lls
     
     def remove_zero_probs(self, L1, outcomes):
         '''
-        Remove thetas whose likelihood is zero for any outcome.
+        Remove ws whose likelihood is zero for any outcome.
         
         L1: matrix where item [i,j] is likelihood of parameter i for experiment
         j, conditional on outcome 1. Outcomes is a list with the actual 
         observed outcomes.
-        '''
-        '''
-        zeros = np.where(matrix == 0)
-        
-        for r,c in zeros:
-            if outcomes[c] == cond:
-                thetas = np.delete(thetas, r)
         '''
         # Likelihood of parameters given outcome 1 is >0 for all 1 outcomes.
         condition1 = (L1 > 0) | (outcomes != 1)
@@ -428,7 +338,7 @@ class QAEmodel(LikelihoodModel):
         
         return L1[keep], keep
     
-    def sin2_catch(self, args, thetas):
+    def sin2_catch(self, args, ws):
         '''
         Note that args is a matrix.
         
@@ -440,7 +350,7 @@ class QAEmodel(LikelihoodModel):
                              largs = [args], 
                              errdesc = ["invalid value encountered in sin"], 
                              cleanup = lambda x: print_1st_err(sin2, x, "arg", 
-                                                               [thetas], ["theta"]),
+                                                               [ws], ["w"]),
                              caller = "sin2_catch")
         return r
     
@@ -472,16 +382,6 @@ class QAEmodel(LikelihoodModel):
                              cleanup = cleanup,
                              caller = "exps_catch")
         return r
-    
-    def thetas_from_a(self, amps):
-        '''
-        Filter valid amplitudes and return the corresponding thetas.
-        '''
-        valid_a = np.logical_and(amps>=0, amps<=1)
-        thetas = np.arcsin(np.sqrt(amps, where = valid_a), where = valid_a)
-        # Invalid amplitudes should be replaced with invalid thetas.
-        thetas[~valid_a] = self.get_range("theta")[1] + 1
-        return thetas
 
     def enforce_domain(self, lparam, ls, var, log = False):
         '''
@@ -490,28 +390,9 @@ class QAEmodel(LikelihoodModel):
         mn, mx = self.get_range(var)
         valid = np.logical_and(lparam >= mn, lparam <= mx)
         
-        # To do this, must be able to change locs @ sampler.
-        # if var == "theta":
-        #    lparam = np.where(valid, lparam, 2*np.pi - lparam % np.pi) 
         zeroprob = -np.inf if log else 0
         ls = np.where(valid, ls, zeroprob)
         return ls
-    
-    def rescale(self, divisor):
-        self.amplitude = self.amplitude/divisor
-        
-    def hadamard_test(self, k, nshots = None):
-        arg = 2**k*self.theta
-        p1 = np.sin(arg)**2
-        if self.Tc is not None:
-            p1 = self.damp_fun(2**k, p1, "real")
-            
-        if nshots is None:
-            print("> Warning: no shot noise! [QAEmodel.hadamard_test]")
-            return p1 
-        
-        hits = np.random.binomial(nshots, p1)
-        return hits
         
        
 def get_data(M, ctrls, var):
@@ -528,14 +409,12 @@ def get_batch_data(M, ctrl, nshots, var):
     return data
        
 def test(var = "Tc", batch = False):
-    a = 0.3
-    T = 300
-    q = QAEmodel(a, Tc = T, Tcrange = (100, 1000))
+    w = 0.1
+    wmax = 1
+    q = PrecessionModel(w, wmax = 1, Tc = T, Tcrange = (100, 1000))
     # Give true amplitude.
     q.set_Tc_est(T)
     # Test likelihood of real parameter.
-    if var == "a":
-        param = a
     if var == "Tc":
         param = T
 

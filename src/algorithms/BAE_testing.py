@@ -1,11 +1,19 @@
 '''
 Class for testing BAE.
 '''
+import os
+
+''' 
+The following is necessary to deal with KeyboardInterrupt properly for some 
+reason; otherwise "forrtl: error (200): program aborting due to control-C event"
+'''
+os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
+
 import numpy as np
 import matplotlib.pyplot as plt
 from src.algorithms.BAE import BAE
 from src.algorithms.samplers import get_sampler
-from src.utils.models import QAEmodel
+from src.utils.models import PrecessionModel
 from src.utils.plotting import process_and_plot, plot_single_run
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.misc import (print_centered, dict_str, sigdecstr, k_largest_tuples, 
@@ -15,9 +23,10 @@ from src.utils.running import Runner, BAERunsData
 NDIGITS = 4
 
 class TestBAE():
-    def __init__(self, a, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
+    def __init__(self, w, wmax, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
                  silent = False, save = True, show = True):
-        self.a = a
+        self.w = w
+        self.wmax = wmax
         # Keep full Tc dicts just for the prints; organize rest of info into
         # other attributes.
         self.Tc_opts = Tc_opts
@@ -34,11 +43,11 @@ class TestBAE():
         self.show = show
 
     def param_str(self):
-        a_str = (self.rand_pstr(self.a) if isinstance(self.a,tuple)
-                 else str(self.a))
+        w_str = (self.rand_pstr(self.w) if isinstance(self.w,tuple)
+                 else str(self.w))
         Tc_str = (self.rand_pstr(self.Tc) if isinstance(self.Tc,tuple)
                  else str(self.Tc))
-        s = f"a={a_str};Tc={Tc_str}"
+        s = f"w={w_str};Tc={Tc_str}"
         return s
 
     @staticmethod
@@ -46,7 +55,7 @@ class TestBAE():
         return f"[{param[0]},{param[1]}]"
 
     @property
-    def local_a(self):
+    def local_w(self):
         '''
         For each run, the real amplitude parameter will be 'local_a'.
 
@@ -58,13 +67,13 @@ class TestBAE():
         - A tuple. In that case, each run will sample an amplitude at random
         in the interval given by the tuple.
         '''
-        if isinstance(self.a, tuple):
-            amin, amax = self.a
-            a = np.random.uniform(amin,amax)
-            print(f"> Sampled a = {a} (theta = {QAEmodel.theta_from_a(a)}).")
-            return a
+        if isinstance(self.w, tuple):
+            wmin, wmax = self.w
+            w = np.random.uniform(wmin,wmax)
+            print(f"> Sampled w = {w}.")
+            return w
         else:
-            return self.a
+            return self.w
 
     @property
     def local_Tc(self):
@@ -147,9 +156,9 @@ class TestBAE():
         Perform a single run of Bayesian adaptive QAE, and return lists of the
         numbers of queries, errors and standard deviations (ordered by step).
         '''
-        a = self.local_a; Tc = self.local_Tc
+        w = self.local_w; Tc = self.local_Tc
 
-        M =  QAEmodel(a, Tc = Tc, Tcrange = self.Tcrange)
+        M =  PrecessionModel(w, self.wmax, Tc = Tc, Tcrange = self.Tcrange)
 
         Tc_precalc = self.Tc_precalc
         # Tc_precalc is False if Tc to be ignored; True if to be considered.
@@ -164,11 +173,11 @@ class TestBAE():
         sampler = get_sampler(self.sampler_str, M, self.sampler_kwargs)
         means, stds, nqs = Est.adapt_inference(sampler, self.strat,
                                                maxPT = self.maxPT)
-        nsqes = [(est/a - 1)**2 for est in means]
+        nsqes = [(est/w - 1)**2 for est in means]
         nstds = [sqe/mean for sqe,mean in zip(stds, means)]
 
         ctrls = Est.ctrls_list
-        devs = [np.abs(est - a) for est in means]
+        devs = [np.abs(est - w) for est in means]
         # for i, (ctrl, dev) in enumerate(zip(ctrls,devs)):
         #    print(f"> Iteration {i}: ctrl = {ctrls[i]}, error = {devs[i]}.")
 
@@ -223,7 +232,7 @@ class TestBAE():
         Organize information into a EstimationData object.
         '''
         raw_estdata = EstimationData()
-        raw_estdata.add_data("BAE", nqs = nqs, lbs = None, errs = sqes,
+        raw_estdata.add_data("WES", nqs = nqs, lbs = None, errs = sqes,
                              stds = stds)
         return raw_estdata
 
@@ -263,10 +272,11 @@ def test_evol(save, show):
     # Tcrange could be different from Tc if we want to fix Tc but have a 
     # wider prior for the Tc estimation.
     Tcrange = None # (2000, 5000)
-    a = 0.17 # (0,1)  
+    wmax = 2*np.pi
+    w = (0,wmax)  
     Tc = Tcrange 
-    maxPT = 10**8
-    nruns = 1
+    maxPT = 1e7
+    nruns = 100
     sampler_str = "RWM"
 
     Tc_opts = {"Tc": Tc,
@@ -278,16 +288,16 @@ def test_evol(save, show):
     strat = {"wNs": 10,
                 "Ns": 1,
                 "TNs": 500,
-                "k": 2,
+                "k": 0.5,
                 "Nevals": 50,
                 "erefs": 3,
                 "ethr": 3,
                 "cap": False,
                 "capk": 2}
     # Sampler arguments.
-    sampler_kwargs = {"Npart": 2000,
+    sampler_kwargs = {"Npart": 5000,
                         "thr": 0.5,
-                        "var": "theta",
+                        "var": "w",
                         "ut": "var",
                         "log": True,
                         "res_ut": False,
@@ -297,12 +307,12 @@ def test_evol(save, show):
     if sampler_str=="LW":
         sampler_kwargs["a_LW"] = 0.98
 
-    Test = TestBAE(a, Tc_opts, strat, maxPT, sampler_str,
+    Test = TestBAE(w, wmax, Tc_opts, strat, maxPT, sampler_str,
                         sampler_kwargs, save = save, show = show)
 
     Test.sqe_evolution_multiple(nruns)
 
 if __name__ == "__main__":
-    save = False
+    save = True
     show = True
     test_evol(save, show)

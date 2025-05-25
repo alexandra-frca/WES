@@ -310,7 +310,7 @@ def get_logplot(ylabel, title = None, return_fig = False):
     
     #title = ("Scaling of the estimation error in a with the number of "
     #    "queries to A")
-    xlabel = "Number of queries"
+    xlabel = "Cumulative evolution time"
     
     if title is not None:
         ax.set_title(title, fontsize=16, pad=25)
@@ -369,47 +369,20 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0,
                    edgecolors = 'black', linewidth = 0.75)
     return id
 
-MARKER_SHAPES = {'classical': 's',
-                 'canonical': 'o',
-                 'LIS': 'd',
-                 'EIS': '*', 
-                 'QAES': '^',
-                 'SQAE #1': 'v',
-                 'SQAE #2': 'v',
-                 'FQAE': 'p',
-                 'IQAE - chernoff': 'P',
-                 'mIQAE - chernoff': 'X',
-                 'BAE': '8',
-                 'aBAE': '8',
-                 'adaptive': '8'}
+MARKER_SHAPES = {'PGH': 's',
+                 '1/sigma': 'v',
+                 'WES': '8',
+                 'aWES': '8'}
      
-MARKER_COLORS = {'classical': 'firebrick',
-                 'canonical': 'gray',
-                 'LIS': 'darkseagreen',
-                 'EIS': 'salmon', 
-                 'QAES': 'lightskyblue',
-                 'SQAE #1': 'yellow',
-                 'SQAE #2': 'yellow',
-                 'FQAE': 'orange',
-                 'IQAE - chernoff': 'violet',
-                 'mIQAE - chernoff': '#DC143C',
-                 'BAE': 'navy',
-                 'aBAE': '#008080',
-                 'adaptive': 'navy'}
+MARKER_COLORS = {'PGH': 'firebrick',
+                 '1/sigma': 'yellow',
+                 'WES': 'navy',
+                 'aWES': '#008080'}
 
-MARKER_SIZES = {'classical': 82,
-                'canonical': 130,
-                'LIS': 110, 
-                'EIS':  200, 
-                'QAES': 120,
-                'SQAE #1': 120,
-                'SQAE #2': 120,
-                'FQAE': 130,
-                'IQAE - chernoff': 180,
-                'mIQAE - chernoff': 180,
-                'BAE': 80,
-                'aBAE': 80,
-                'adaptive': 80}
+MARKER_SIZES = {'PGH': 82,
+                '1/sigma': 120,
+                'WES': 80,
+                'aWES': 80}
 
 def label_from_key(key):
     '''
