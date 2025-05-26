@@ -253,7 +253,7 @@ def plot_est_evol(*args, **kwargs):
         else:
             plt.close()
     
-LONG =  {"RMSE": "*avgtype* error (normalized)",
+LONG =  {"RMSE": "*avgtype* error o",
          "std":  "*avgtype* standard deviation (normalized)"}
 
 def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit", 
@@ -360,6 +360,7 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0,
                ax.add_artist(ab)
             continue
         
+        key = fix_key(key)
         marker = MARKER_SHAPES[key]
         size = MARKER_SIZES[key]
         color = MARKER_COLORS[key]
@@ -370,19 +371,30 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0,
     return id
 
 MARKER_SHAPES = {'PGH': 's',
-                 '1/sigma': 'v',
+                 'sigma': 'v',
                  'WES': '8',
                  'aWES': '8'}
      
 MARKER_COLORS = {'PGH': 'firebrick',
-                 '1/sigma': 'yellow',
+                 'sigma': 'yellow',
                  'WES': 'navy',
                  'aWES': '#008080'}
 
 MARKER_SIZES = {'PGH': 82,
-                '1/sigma': 120,
+                'sigma': 120,
                 'WES': 80,
                 'aWES': 80}
+
+def fix_key(key):
+    '''
+    For earlier datasets where label wasn't altered to WES. 
+    '''
+    if key=="BAE":
+        return "WES"
+    elif key=="aBAE":
+        return "aWES"
+    else:
+        return key
 
 def label_from_key(key):
     '''
@@ -398,6 +410,10 @@ def label_from_key(key):
         return "mIAE"
     elif key == "canonical":
         return "QAE"
+    elif key=="BAE":
+        return "WES"
+    elif key=="aBAE":
+        return "aWES"
     else:
         # Write IQAE -> IAE, etc. for simplicity
         return key.replace("QAE", "AE", 1)

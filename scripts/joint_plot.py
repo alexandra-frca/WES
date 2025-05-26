@@ -66,5 +66,5 @@ def get_estdatas(filename_list, stat, silent = False):
 if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
-    plot_from_folder("ESS", stats = ["median"])
+    plot_from_folder("noiseless", stats = ["median"])
 

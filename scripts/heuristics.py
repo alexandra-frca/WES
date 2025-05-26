@@ -21,7 +21,7 @@ stall_counter = 0
 class AdaptiveInference():
 
     def __init__(self, heuristic, sampler, model, Tc = None):
-        assert heuristic in ["1/sigma", "PGH"]
+        assert heuristic in ["sigma", "PGH"]
         self.heuristic = heuristic
         self.sampler = sampler
         self.model = model
@@ -66,7 +66,7 @@ class AdaptiveInference():
         return means, stds, cpts[1:]
 
     def choose_control(self):
-        if self.heuristic == "1/sigma":
+        if self.heuristic == "sigma":
             _, std = self.sampler.mean_and_std()
             t = 1/std
             return t
@@ -179,7 +179,7 @@ class Test():
         Organize information into a EstimationData object.
         '''
         raw_estdata = EstimationData()
-        raw_estdata.add_data("BAE", nqs = nqs, lbs = None, errs = sqes,
+        raw_estdata.add_data(self.heuristic, nqs = nqs, lbs = None, errs = sqes,
                              stds = stds)
         return raw_estdata
     
@@ -188,11 +188,9 @@ class Test():
         Organize information into a ExecutionData object.
         '''
         sampler_params = dict_str(self.sampler_kwargs)
-        sampler_info = f"{self.sampler_str}({sampler_params})"
-        strat_info = f"STRAT=({dict_str(self.strat)})"
-        extra = f"{strat_info},{sampler_info}"
-        Ns = (self.strat["wNs"], self.strat["Ns"])
-        exdata = ExecutionData(self.param_str(), raw_estdata, nruns,
+        extra = f"{self.sampler_str}({sampler_params})"
+        Ns = 1
+        exdata = ExecutionData("w", raw_estdata, nruns,
                                Ns, label=self.heuristic,
                                extra_info = extra)
         return exdata
@@ -202,18 +200,17 @@ if __name__ == "__main__":
     which = 1
 
     sampler_str = "RWM"
-    sampler_kwargs = {"Npart": 500,
+    sampler_kwargs = {"Npart": 5000,
                     "thr": 0.5,
                     "var": "w",
                     "ut": "var",
                     "log": True,
                     "res_ut": False,
                     "plot": False}
-    heuristic = "1/sigma"
-
+    heuristic = "sigma"
+    wmax = 2*np.pi
     if which == 0:
         w = 0.1
-        wmax = 1
         Tc = None
         Tcrange = None
         M = PrecessionModel(w, wmax, Tc = Tc, Tcrange = Tcrange)
@@ -224,11 +221,11 @@ if __name__ == "__main__":
         print(means[-1], stds[-1], cpts[-1])
 
     if which == 1:
-        wmax = 1
         w =  (0, wmax)
         Tc = None
         Tcrange = None
         maxPT = 1e7
-        nruns = 100
-        t = Test(heuristic, w, wmax, Tc, Tcrange, maxPT, sampler_str, sampler_kwargs, save = False, show = True)
+        nruns = 1
+        t = Test(heuristic, w, wmax, Tc, Tcrange, maxPT, sampler_str, 
+                 sampler_kwargs, save = True, show = True)
         t.sqe_evolution_multiple(nruns, redirect = 0)
