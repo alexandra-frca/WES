@@ -115,7 +115,7 @@ class BAE():
         # Items will be removed from the dictionary during each run.
         astrat = deepcopy(strat)
 
-        # Classical warm up, and Tc warm up if applicable.
+        # w warm up, and Tc warm up if applicable.
         self.inference_warmup(astrat.pop("wNs"), astrat.pop("TNs"), sampler, rd)
 
         # Adaptive phase.
@@ -165,7 +165,7 @@ class BAE():
 
     def warmup(self, sampler, wNs, TNs):
         self.warmup_Tc(TNs)
-        ctrl, Ns = self.classical_warmup(sampler, wNs)
+        ctrl, Ns = self.w_warmup(sampler, wNs)
         return ctrl, Ns
     
     def warmup_Tc(self, TNs):
@@ -178,14 +178,14 @@ class BAE():
             Tc_est = self.learn_Tc(TNs)
             self.set_Tc_est(Tc_est)
 
-    def classical_warmup(self, sampler, wNs):
+    def w_warmup(self, sampler, wNs):
         if wNs == 0:
             return
 
         s = f"> Warming up with {wNs} classical shots."
         self.pman.print1st(s, "warm_up")
 
-        ctrls = self.gather_data(wNs, how = "classical")
+        ctrls = self.gather_data(wNs, how = "warmup")
         assert len(ctrls) == 1; ctrl = ctrls[0]
 
         data = self.data
@@ -335,12 +335,12 @@ class BAE():
         return cumul_PTs
 
     def probing_time(self, ctrl):
-        PT = 2*ctrl+1
+        PT = ctrl
         return PT
 
-    def gather_data(self, Ns, how = "classical"):
-        if how == "classical":
-            ctrls, Nsshots = [0], [Ns]
+    def gather_data(self, Ns, how = "warmup"):
+        if how == "warmup":
+            ctrls, Nsshots = [1], [Ns]
         if how == "exp":
             ctrls = self.exp_controls(Ns)
             Nsshots = [1 for i in range(Ns)]
@@ -432,8 +432,9 @@ def fix_aBAE_label(execdata):
     if match:
         result = match.group(1)
         if result=="ESS":
-            old = "BAE"
-            new = "aBAE"
+            #print(execdata.label)
+            old = "WES"
+            new = "aWES"
             execdata.label = new
             for d in execdata.estdata.unpack_data():
                 if d:

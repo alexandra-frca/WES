@@ -20,20 +20,23 @@ NDIGITS = 3
 stall_counter = 0
 class AdaptiveInference():
 
-    def __init__(self, heuristic, sampler, model, Tc = None):
-        assert heuristic in ["sigma", "PGH"]
-        self.heuristic = heuristic
+    def __init__(self, strat, sampler, model, Tc = None):
+        assert strat["heuristic"] in ["sigma", "PGH"]
+        self.strat = strat
         self.sampler = sampler
         self.model = model
-        self.Tc = None
+        if Tc is not None: 
+            self.model.set_Tc_est(Tc)
+            print(f"> Set Tc = {Tc}. [warm_up]")
         self.data = MeasurementData([], [], [])
 
-    def infer(self, maxPT, debug = False):
+    def infer(self, maxPT, debug = True):
         sampler = self.sampler
         means = []
         stds = []
         cpts = [0]
         ctrls = []
+        input("input")
         while cpts[-1] < maxPT:
             ctrl = self.choose_control()
             # print("> sampler locs:", sampler.locs)
@@ -66,11 +69,13 @@ class AdaptiveInference():
         return means, stds, cpts[1:]
 
     def choose_control(self):
-        if self.heuristic == "sigma":
+        heuristic = self.strat["heuristic"]
+        C = self.strat["C"]
+        if heuristic == "sigma":
             _, std = self.sampler.mean_and_std()
-            t = 1/std
+            t = C/std
             return t
-        else: 
+        if heuristic == "PGH":
             delta = 0
             counter = 0
             while delta == 0:
@@ -79,17 +84,16 @@ class AdaptiveInference():
                 delta = abs(duo[0] - duo[1])
                 #if counter == 10:
                 #    print("> Counter reached 10!", self.sampler.locs)
-            t = 1/delta
+            t = C/delta
             return t
         
 class Test():
-    def __init__(self, heuristic, w, wmax, Tc, Tcrange, maxPT, sampler_str, sampler_kwargs,
+    def __init__(self, heuristic, w, wmax, Tc, maxPT, sampler_str, sampler_kwargs,
                  silent = False, save = True, show = True):
-        self.heuristic = heuristic 
-        self.a = w
+        self.strat = strat
+        self.w = w
         self.wmax = wmax
         self.Tc = Tc
-        self.Tcrange = Tcrange
         self.maxPT = maxPT
         self.sampler_str = sampler_str
         self.sampler_kwargs = sampler_kwargs
@@ -100,6 +104,14 @@ class Test():
     @staticmethod
     def rand_pstr(param):
         return f"[{param[0]},{param[1]}]"
+    
+    def param_str(self):
+        w_str = (self.rand_pstr(self.w) if isinstance(self.w,tuple)
+                 else str(self.w))
+        Tc_str = (self.rand_pstr(self.Tc) if isinstance(self.Tc,tuple)
+                 else str(self.Tc))
+        s = f"w={w_str};Tc={Tc_str}"
+        return s
 
     @property
     def local_a(self):
@@ -114,13 +126,13 @@ class Test():
         - A tuple. In that case, each run will sample an amplitude at random
         in the interval given by the tuple.
         '''
-        if isinstance(self.a, tuple):
-            amin, amax = self.a
-            w = np.random.uniform(amin,amax)
+        if isinstance(self.w, tuple):
+            wmin, wmax = self.w
+            w = np.random.uniform(wmin,wmax)
             print(f"> Sampled w = {w}.")
             return w
         else:
-            return self.a
+            return self.w
 
     @property
     def local_Tc(self):
@@ -161,9 +173,9 @@ class Test():
         '''
         w = self.local_a; Tc = self.local_Tc
 
-        M =  PrecessionModel(w, self.wmax, Tc = Tc, Tcrange = self.Tcrange)
+        M =  PrecessionModel(w, self.wmax, Tc = Tc)
         sampler = get_sampler(self.sampler_str, M, self.sampler_kwargs)
-        ainf = AdaptiveInference(self.heuristic, sampler, M)
+        ainf = AdaptiveInference(self.strat, sampler, M, Tc)
 
         
         means, stds, nqs = ainf.infer(maxPT = self.maxPT)
@@ -179,8 +191,8 @@ class Test():
         Organize information into a EstimationData object.
         '''
         raw_estdata = EstimationData()
-        raw_estdata.add_data(self.heuristic, nqs = nqs, lbs = None, errs = sqes,
-                             stds = stds)
+        raw_estdata.add_data(self.strat["heuristic"], nqs = nqs, lbs = None, 
+                            errs = sqes, stds = stds)
         return raw_estdata
     
     def create_execdata(self, raw_estdata, nruns):
@@ -188,10 +200,12 @@ class Test():
         Organize information into a ExecutionData object.
         '''
         sampler_params = dict_str(self.sampler_kwargs)
-        extra = f"{self.sampler_str}({sampler_params})"
+        sampler_info = f"{self.sampler_str}({sampler_params})"
+        strat_info = f"STRAT=({dict_str(self.strat)})"
+        extra = f"{strat_info},{sampler_info}"
         Ns = 1
-        exdata = ExecutionData("w", raw_estdata, nruns,
-                               Ns, label=self.heuristic,
+        exdata = ExecutionData(self.param_str(), raw_estdata, nruns,
+                               Ns, label=self.strat["heuristic"],
                                extra_info = extra)
         return exdata
 
@@ -200,32 +214,35 @@ if __name__ == "__main__":
     which = 1
 
     sampler_str = "RWM"
-    sampler_kwargs = {"Npart": 5000,
+    sampler_kwargs = {"Npart": 2000,
                     "thr": 0.5,
                     "var": "w",
                     "ut": "var",
                     "log": True,
                     "res_ut": False,
                     "plot": False}
-    heuristic = "sigma"
-    wmax = 2*np.pi
+    strat = {"heuristic": "sigma",
+             "C": 0.75}
+    wmax = 1 # np.pi/2
+ 
     if which == 0:
         w = 0.1
         Tc = None
         Tcrange = None
-        M = PrecessionModel(w, wmax, Tc = Tc, Tcrange = Tcrange)
+        M = PrecessionModel(w, wmax, Tc = Tc)
         sampler = get_sampler(sampler_str, M, sampler_kwargs)
         maxPT = 1e7
-        ai = AdaptiveInference(heuristic, sampler, M)
+        ai = AdaptiveInference(strat, sampler, M, Tc)
         means, stds, cpts = ai.infer(maxPT)
         print(means[-1], stds[-1], cpts[-1])
 
     if which == 1:
-        w =  (0, wmax)
-        Tc = None
-        Tcrange = None
+        w = 0.1934 
+        w = (0,wmax) 
+        # Tc can be None, a tuple (denoting a distribution), or a number.
+        Tc = 1000 # (1000, 2000) # None
         maxPT = 1e7
-        nruns = 1
-        t = Test(heuristic, w, wmax, Tc, Tcrange, maxPT, sampler_str, 
+        nruns = 10
+        t = Test(strat, w, wmax, Tc, maxPT, sampler_str, 
                  sampler_kwargs, save = True, show = True)
         t.sqe_evolution_multiple(nruns, redirect = 0)

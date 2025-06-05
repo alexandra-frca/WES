@@ -253,7 +253,7 @@ def plot_est_evol(*args, **kwargs):
         else:
             plt.close()
     
-LONG =  {"RMSE": "*avgtype* error o",
+LONG =  {"RMSE": "*avgtype* error",
          "std":  "*avgtype* standard deviation (normalized)"}
 
 def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit", 
@@ -332,7 +332,7 @@ def get_logplot(ylabel, title = None, return_fig = False):
         return fig, ax
     return ax
 
-def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0, 
+def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 10, 
                        Nqmax = None):
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 

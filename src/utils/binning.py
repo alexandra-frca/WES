@@ -12,7 +12,7 @@ strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
 def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
                     add_after = None, full_output = False, return_err = False,
-                    strategy = "y_mean", logdomain = False, silent = True):
+                    strategy = "y_mean", logdomain = True, silent = True):
     '''
     Split (x, y) data points into groups depending on the x coordinate,
     and calculate the average xs and ys**ypower for each group.
@@ -26,7 +26,7 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     over points belonging to the ideal line will produce points still contained 
     in it.
     '''
-    
+    # strategy = "fit"
     # Use slightly enlarged xrange so endpoints are included in the bins.
     # xrange = min(xs) - 1, max(xs) + 1
     xrange = min(xs), max(xs)

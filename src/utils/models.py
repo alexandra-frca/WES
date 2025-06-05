@@ -148,7 +148,7 @@ class PrecessionModel(LikelihoodModel):
             arg = t*self.w/2
             p1 = np.sin(arg)**2
             if self.Tc is not None:
-                p1 = self.damp_fun(m, p1, "real")
+                p1 = self.damp_fun(t, p1, "real")
                 
         if prt:
             print(f"> p1 = {p1}. [PrecessionModel.measure]")

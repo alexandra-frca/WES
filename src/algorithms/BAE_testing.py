@@ -272,23 +272,24 @@ def test_evol(save, show):
     # Tcrange could be different from Tc if we want to fix Tc but have a 
     # wider prior for the Tc estimation.
     Tcrange = None # (2000, 5000)
-    wmax = 2*np.pi
+    wmax = 1 # np.pi/2
+    w = 0.1934 
     w = (0,wmax)  
-    Tc = Tcrange 
-    maxPT = 1e7
-    nruns = 100
+    Tc = 1000 # Tcrange 
+    maxPT = 1e6
+    nruns = 10
     sampler_str = "RWM"
 
     Tc_opts = {"Tc": Tc,
                 "Tc_precalc": True if Tc else False,
-                "known_Tc": False,
+                "known_Tc": True,
                 "range": Tcrange}
 
     # Strategy for the adaptive optimization.
     strat = {"wNs": 10,
-                "Ns": 1,
+                "Ns": 10,
                 "TNs": 500,
-                "k": 0.5,
+                "k": 2,
                 "Nevals": 50,
                 "erefs": 3,
                 "ethr": 3,

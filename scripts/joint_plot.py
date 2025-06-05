@@ -10,15 +10,7 @@ from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
 
 PROCESSING = {'classical': 'none',
-                'canonical': 'averaging2',
-                'MLQAE':  'averaging', 
-                'QAES': 'binning',
-                'SQAE #2': "binning", 
-                'SQAE #1': "binning", 
-                'SQAE #0': "binning", 
-                'FQAE': 'binning',
-                'IQAE - chernoff': 'binning',
-                'mIQAE - chernoff': 'binning',
+                'sigma': 'binning',
                 'BAE': 'binning'}
 
 def plot_from_folder(folder, stats, silent = False, save = False):
@@ -66,5 +58,6 @@ def get_estdatas(filename_list, stat, silent = False):
 if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
-    plot_from_folder("noiseless", stats = ["median"])
+    # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
+    plot_from_folder("noisy2", stats = ["mean", "median"])
 
