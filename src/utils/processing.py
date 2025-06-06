@@ -1,10 +1,10 @@
-from src.utils.binning import process_raw_estdata
 from src.utils.files import data_from_file
 from src.utils.misc import estimation_errors, thin_list
 
 def process(raw_estdata, stat, how = "binning"):
     assert how in ["binning", "averaging", "averaging2", "none"], how
     if how == "binning":
+        from src.utils.binning import process_raw_estdata
         try:
             estdata = process_raw_estdata(raw_estdata, stat = stat)
         except ValueError as e:

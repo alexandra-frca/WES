@@ -4,16 +4,17 @@ Binning to treat adaptive QAE data.
 from scipy import interpolate as interp, optimize as opt
 import numpy as np
 from pandas import cut, DataFrame
+import matplotlib.pyplot as plt
 
 from src.utils.mydataclasses import EstimationData
 from src.utils.files import data_from_file
+from src.utils.plotting import plot_err_evol
     
 strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
 def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
                     add_after = None, full_output = False, return_err = False,
-                    strategy = "y_mean", logdomain = True, silent = True,
-                    return_errs = True):
+                    strategy = "y_mean", logdomain = False, silent = True):
     '''
     Split (x, y) data points into groups depending on the x coordinate,
     and calculate the average xs and ys**ypower for each group.
@@ -148,13 +149,25 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     if full_output:
         return xs, ys, bins, grouped_points
     elif return_err:
-        assert strategy == "y_mean", logdomain == False
-        std_df = grouped.std()
-        # Standard error of the mean.
-        # std_df = std_df / grouped.count().pow(0.5)
-        dx = std_df['x'].values
+        if strategy not in ["y_mean", "y_median"] or logdomain:
+            return xs, ys, None, None
+        
+        if strategy=="y_mean":        
+            errdf = grouped.std()
+            avg = grouped.mean()
+            # Standard error of the mean.
+            # std_df = std_df / grouped.count().pow(0.5)
+        if strategy=="y_median":
+            def iqr(x):
+                return np.percentile(x, 75) - np.percentile(x, 25)
+            errdf = grouped.agg(iqr)
+            avg = grouped.median()
+
+        dx = errdf['x'].values/2
         # Error propagation. 
-        dy = std_df['y'].values * ypower * (grouped.mean()['y'].values ** (ypower - 1))
+        dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
+        print("y1", ys)
+        input()
         return xs, ys, dx, dy
     else:
         return xs, ys
@@ -280,7 +293,7 @@ def sqe_evol_from_file(filename, preprocessed, label):
         
     plot_err_vs_Nq(estdata, exp_fit = False)
 
-def process_raw_estdata(raw_estdata, stat, label = None):
+def process_raw_estdata(raw_estdata, stat, label = None, errorbars = True):
     '''
     Read raw data from EstimationData object, process it, then save processed 
     data to other EstimationData object.
@@ -302,17 +315,27 @@ def process_raw_estdata(raw_estdata, stat, label = None):
     # Binning strategies need identifiers because they concern quantities other
     # than y, such as slopes.
     strat = "y_" + stat
-    gxs, gys = bin_and_average(nqs, sqes, strategy = strat)
+    # gxs, gys = bin_and_average(nqs, sqes, strategy = strat)
     if label in list(raw_estdata.std_dict.keys()):
         # Plot also std.
         stds = raw_estdata.std_dict[label]
-        gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, 
-                                                  strategy = strat)
+        
+        if errorbars:
+            gxs, gy2s, xerrs, yerrs = bin_and_average(nqs, stds, ypower = 1, 
+                                                    strategy = strat, 
+                                                    return_err=True)
+        else:
+            gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, 
+                                                    strategy = strat, 
+                                                    return_err=False)
+            xerrs, yerrs = None, None
     else:
         gy2s = None
 
     estdata = EstimationData()
-    estdata.add_data(label, nqs = gxs, lbs = None, errs = gys, stds = gy2s)
+    print("y1.5", gxs, gy)
+    estdata.add_data(label, nqs = gxs, lbs = None, errs = gys, stds = gy2s,
+                     xerrs = xerrs, yerrs = yerrs)
     return estdata
 
 
@@ -322,21 +345,23 @@ def test_plot_err_vs_Nq():
     Test the 'plot_err_vs_Nq' function from the 'utils.plotting' using the data
     generated in this script.
     '''
-    
-    npoints = 10
+    npoints = 100
     power = -0.5
     fixed_point = (100, 1e-2) 
     mean = 0.7
     xrange = (fixed_point[0], 10**5)
     f = power_function(power, fixed_point)
     xs, ys = generate_points(npoints, xrange, mean, f, noise = False)
+    xs, ys, dxs, dys = bin_and_average(xs, ys, strategy = "y_mean", 
+                                       return_err = True)
     # Perturb the 1st point (bring it lower wrt line relative to the others) 
     # to assess effect. If yintercept == "1st", the line will fit weird.
-    ys[0] /= 1.5
+    # ys[0] /= 1.5
     
     estdata = EstimationData()
-    estdata.add_data("*test*", nqs = xs, lbs = None, errs = ys)
+    estdata.add_data("WES", nqs = xs, lbs = None, errs = ys, xerrs = dxs, yerrs = dys)
     plot_err_evol("RMSE", estdata, yintercept = "fit")
+    plt.show()
 
 if __name__=="__main__":
     test_plot_err_vs_Nq()

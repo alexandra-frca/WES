@@ -10,9 +10,9 @@ from src.utils.processing import process, safe_save_fig
 from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
 
-PROCESSING = {'classical': 'none',
-                'sigma': 'binning',
-                'BAE': 'binning'}
+PROCESSING = {'sigma': 'binning',
+              'PGH': 'binning',
+              'BAE': 'binning'}
 
 def plot_from_folder(folder, stats, silent = False, save = False):
     '''
@@ -60,5 +60,5 @@ if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
     # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
-    plot_from_folder("ESS", stats = ["mean", "median"])
+    plot_from_folder("noisy", stats = ["mean", "median"])
 

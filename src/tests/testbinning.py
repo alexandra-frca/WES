@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from src.utils.plotting import Plotter
+from utils.plotting import Plotter
 from src.utils.binning import power_function, generate_points, bin_and_average
 def test_plot():
     '''

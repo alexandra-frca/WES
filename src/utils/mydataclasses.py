@@ -277,6 +277,15 @@ class EstimationData():
                 estimation errors and standard deviations dictionaries.
         """
         return self.Nq_dict, self.lb_dict, self.err_dict, self.std_dict
+    
+    def error_bars(self):
+        if len(self.xerr_dict)!=0 and len(self.yerr_dict)!=0: 
+            return self.xerr_dict, self.yerr_dict
+        # except AttributeError as e:
+        # print(f"No error bars - AttributeError: {e}")
+        xerr_dict = {key: None for key in self.Nq_dict.keys()}
+        yerr_dict = xerr_dict
+        return xerr_dict, yerr_dict
 
     def get_attribute_info(self):
         """

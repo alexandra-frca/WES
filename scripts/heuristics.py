@@ -12,7 +12,7 @@ from src.algorithms.samplers import get_sampler
 from src.utils.models import PrecessionModel
 from src.utils.mydataclasses import MeasurementData, EstimationData, ExecutionData
 from src.utils.misc import sigdecstr
-from src.utils.plotting import process_and_plot
+from utils.plotting import process_and_plot
 from src.utils.running import Runner, BAERunsData
 
 NDIGITS = 3

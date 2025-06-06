@@ -8,13 +8,9 @@ from statistics import mean
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, AutoMinorLocator
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from copy import deepcopy
 from itertools import chain
-import os, pytz
-from datetime import datetime
 
-from src.utils.binning import process_raw_estdata
-from src.utils.misc import estimation_errors, thin_list, logspace
+from src.utils.misc import logspace
 # from src.utils.mydataclasses import EstimationData
 from src.utils.files import data_from_file
 from src.utils.processing import safe_save_fig, process
@@ -250,6 +246,7 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
     ax = get_logplot(ylabel = label.capitalize(), title = title)
     for estdata in estdatas:
         Nq_dict, lb_dict, err_dict, std_dict = estdata.unpack_data()
+        dxs, dys = estdata.error_bars()
         if which=="RMSE":
             y_dict = err_dict
         elif which=="std":
@@ -257,7 +254,8 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
         if len(y_dict)==0:
             # print(f"> No {stat} data to plot for {which}. [plot_err_evol]")
             return 
-        id = plot_error_scatter(Nq_dict, y_dict, ax, iconpath)
+        id = plot_error_scatter(Nq_dict, y_dict, ax, iconpath, 
+                                dxs = dxs, dys = dys)
     
     if len(estdatas) == 1 and plotlims:
         assert not estdata.is_empty()
@@ -308,7 +306,8 @@ def get_logplot(ylabel, title = None, return_fig = False):
     return ax
 
 def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 10, 
-                       Nqmax = None):
+                       Nqmax = None, dxs = None, dys = None, error = "bars"):
+    assert error in ["bars", "shaded"]
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
                            zoom=0.5 if iconpath=="jface.png" else 0.05)
@@ -336,14 +335,49 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 10,
             continue
         
         key = fix_key(key)
-        marker = MARKER_SHAPES[key]
-        size = MARKER_SIZES[key]
-        color = MARKER_COLORS[key]
-        label = label_from_key(key)
-        
-        ax.scatter(x, y, s=size, marker=marker, color=color, label=label,
-                   edgecolors = 'black', linewidth = 0.75)
+        kwargs = plot_kwargs(key)
+        dxs = dxs[key][first_i:]
+        dys = dys[key][first_i:]
+
+        if error == "bars":
+            errorbar_plot(ax, x, y, dxs, dys, **kwargs)
+        if error == "shaded":
+            shaded_plot(ax, x, y, dys, **kwargs)
     return id
+
+def plot_kwargs(key):
+    return {"fmt": MARKER_SHAPES[key],
+            #"markersize": MARKER_SIZES[key]/20,
+            "color": MARKER_COLORS[key],
+            "label": label_from_key(key)}
+
+def errorbar_plot(ax, x, y, dxs, dys, **kwargs):
+    plt.loglog(x,y,'o')
+    print("y2", y)
+    input()
+    ax.errorbar(x, y, xerr = dxs, yerr = dys, markeredgecolor = 'black', 
+                markeredgewidth = 0.75, elinewidth=0.75, capsize=3, ecolor = 'black',
+                **kwargs)
+    # To avoid empty space to the left?... Not sure why it happens
+    xmax = ax.get_xlim()[1]
+    ax.set_xlim(left=10, right=xmax)
+
+def shaded_plot(ax, x, y, dys, **kwargs):
+    fmt = kwargs.pop("fmt")
+    ax.plot(x, y, fmt, **kwargs, markeredgecolor='black', markeredgewidth=0.75,
+            linestyle='--', linewidth=1)
+
+    y_lower = y - dys
+    y_upper = y + dys
+
+    ax.fill_between(
+        x,
+        y_lower,
+        y_upper,
+        color=kwargs['color'],      
+        alpha=0.2,           
+        edgecolor='none'    
+    )
 
 MARKER_SHAPES = {'PGH': 's',
                  'sigma': 'v',
@@ -351,7 +385,7 @@ MARKER_SHAPES = {'PGH': 's',
                  'aWES': '8'}
      
 MARKER_COLORS = {'PGH': 'firebrick',
-                 'sigma': 'yellow',
+                 'sigma': 'orange',
                  'WES': 'navy',
                  'aWES': '#008080'}
 

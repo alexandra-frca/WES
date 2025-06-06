@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from src.algorithms.BAE import BAE
 from src.algorithms.samplers import get_sampler
 from src.utils.models import PrecessionModel
-from src.utils.plotting import process_and_plot, plot_single_run
+from utils.plotting import process_and_plot, plot_single_run
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.misc import (print_centered, dict_str, sigdecstr, k_largest_tuples, 
                         k_smallest_tuples, b10str, dict_info, lprint)
