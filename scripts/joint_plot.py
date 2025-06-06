@@ -5,7 +5,8 @@ import os
 import matplotlib.pyplot as plt
 
 from src.algorithms.BAE import fix_aBAE_label
-from src.utils.plotting import plot_err_evol, process, safe_save_fig
+from src.utils.plotting import plot_err_evol
+from src.utils.processing import process, safe_save_fig
 from src.utils.files import data_from_file
 from src.utils.mydataclasses import get_label
 
@@ -59,5 +60,5 @@ if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
     # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
-    plot_from_folder("noisy2", stats = ["mean", "median"])
+    plot_from_folder("ESS", stats = ["mean", "median"])
 

@@ -187,6 +187,8 @@ class EstimationData():
         self.lb_dict = {}
         self.err_dict = {}
         self.std_dict = {}
+        self.xerr_dict = {}
+        self.yerr_dict = {}
         self.warmup_dict = {}
 
     def is_empty(self):
@@ -208,7 +210,7 @@ class EstimationData():
         return empty
 
     def add_data(self, key, nqs = None, lbs = None, errs = None, stds = None,
-                 warmup = None):
+                 xerrs = None, yerrs = None, warmup = None):
         """
         Adds data to the EstimationData object.
 
@@ -229,6 +231,10 @@ class EstimationData():
             self.err_dict[key] = errs
         if stds is not None:
             self.std_dict[key] = stds
+        if xerrs is not None: 
+            self.xerr_dict[key] = xerrs
+        if yerrs is not None: 
+            self.yerr_dict[key] = yerrs
         if warmup is not None:
             self.warmup_dict[key] = warmup
 

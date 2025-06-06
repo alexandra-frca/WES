@@ -12,7 +12,8 @@ strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
 def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
                     add_after = None, full_output = False, return_err = False,
-                    strategy = "y_mean", logdomain = True, silent = True):
+                    strategy = "y_mean", logdomain = True, silent = True,
+                    return_errs = True):
     '''
     Split (x, y) data points into groups depending on the x coordinate,
     and calculate the average xs and ys**ypower for each group.
@@ -305,13 +306,16 @@ def process_raw_estdata(raw_estdata, stat, label = None):
     if label in list(raw_estdata.std_dict.keys()):
         # Plot also std.
         stds = raw_estdata.std_dict[label]
-        gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, strategy = strat)
+        gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, 
+                                                  strategy = strat)
     else:
         gy2s = None
 
     estdata = EstimationData()
     estdata.add_data(label, nqs = gxs, lbs = None, errs = gys, stds = gy2s)
     return estdata
+
+
 
 def test_plot_err_vs_Nq():
     '''
@@ -333,3 +337,6 @@ def test_plot_err_vs_Nq():
     estdata = EstimationData()
     estdata.add_data("*test*", nqs = xs, lbs = None, errs = ys)
     plot_err_evol("RMSE", estdata, yintercept = "fit")
+
+if __name__=="__main__":
+    test_plot_err_vs_Nq()
