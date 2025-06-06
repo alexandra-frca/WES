@@ -14,7 +14,7 @@ strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
 def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
                     add_after = None, full_output = False, return_err = False,
-                    strategy = "y_mean", logdomain = False, silent = True):
+                    strategy = "y_mean", logdomain = True, silent = True):
     '''
     Split (x, y) data points into groups depending on the x coordinate,
     and calculate the average xs and ys**ypower for each group.
@@ -37,36 +37,17 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
          df = DataFrame({"x": xs, "y": ys})
     else:
         if fixed_point is None:
-            # Use K% first points to define fixed point, necessary for the 
-            # slope strategy.
-            K = 1
-            xs, ys = np.array(xs), np.array(ys)
-            N = len(xs)
-            imax = int(N*K/100)
-            si = np.argsort(xs)
-            ii = si[:imax]
-
-            fxs = xs[ii]
-            fys = ys[ii]
-            fixed_point = np.mean(fxs), np.mean(fys**0.5)
-
+            fixed_point = get_fixed_point(xs, ys)
         # y coordinates are MSEs, while fixed_point[1] is MSE**0.5.
         fixed_point_sq = (fixed_point[0], fixed_point[1]**2)
             
         slopes = [calculate_slope(fixed_point_sq, (x, y)) for x,y in zip(xs,ys)]
         df = DataFrame({"x": xs, "y": ys, "slope": slopes})
     
-    scale = "log"
-    if not STRAT_USED[strategy] and not silent:
-        print(f"> Binning ({strategy}) on [{xrange[0]},{xrange[1]}]. "
-              f"Number of bins: {nbins} (evenly spaced on a {scale} scale)."
-              " [bin_and_average]")
-        STRAT_USED[strategy] = True
-        if fixed_point is not None:
-            print(f"> Using fixed point {fixed_point}.")
+    print_bin_info(strategy, nbins, xrange, fixed_point, silent)
     
     binned_indices, bins = bin_by_values(df, xrange, nbins = nbins+1, 
-                                         scale = scale)
+                                         scale = "log")
 
     grouped_points = group_points(xs, ys, binned_indices)
     
@@ -86,7 +67,6 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
         df['y'] = np.exp(df['y'])
 
     xs = df['x'].values
-
     
     if strategy in ["y_mean", "y_median"]:
         ys = df['y'].values**ypower
@@ -108,48 +88,14 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
         xs = np.logspace(*xrange, nbins, base = np.e)
         ys = [eval_power_function(x, slope, fixed_point) for x in xs]
     if strategy=="spline":
-        ys = list(map(lambda arg: arg**0.5, ys))
-        xrange = list(map(np.log, xrange))
-        
-        which = 3
-        if which==0:
-            sp = interp.interp1d(xs, ys, kind = "cubic")
-        if which==1:
-            sp = interp.InterpolatedUnivariateSpline(xs,ys)
-        if which==2:
-            # The factor is trying to get ~5 knots, same as nbins I was using.
-            sp = interp.UnivariateSpline(xs,ys,s=len(xs)*2.4e-6)
-        if which==3:
-            # Choose the middle knots to match bin boundaries. Exclude the 
-            # endpoints (do [1:-1]) because they're added automatically, see:
-            # print("knots", list(map(np.log10,sp.get_knots())))
-            t = np.logspace(*xrange, nbins, base = np.e)[1:-1]
-             # Remove duplicates or error 'x must be increasing if s>0'.
-            xs = np.array(xs)
-            ys = np.array(ys)
-            _, unique_indices = np.unique(xs, return_index=True)
-            xs = xs[unique_indices]
-            ys = ys[unique_indices]
-
-            
-            sp = interp.LSQUnivariateSpline(xs,ys,t)
-            
-        binwidth = (xrange[1]-xrange[0])/nbins
-        xrange[0] += binwidth/2
-        xrange[1] -= binwidth/2
-        xs = np.logspace(*xrange, nbins, base = np.e)
-        ys = sp(list(xs))
+        ys = spline(ys, xrange, nbins)
 
     if add_after is not None:
-        # Add some fixed point(s).
-        for point in add_after:
-            xs = np.insert(xs, 0, point[0])
-            ys = np.insert(ys, 0, point[1])
-    
+        xs, ys = add_points(add_after)
     if full_output:
         return xs, ys, bins, grouped_points
     elif return_err:
-        if strategy not in ["y_mean", "y_median"] or logdomain:
+        if strategy not in ["y_mean", "y_median"]:
             return xs, ys, None, None
         
         if strategy=="y_mean":        
@@ -164,9 +110,17 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
             errdf = grouped.agg(iqr).fillna(0)
             avg = grouped.median()
 
-        dx = errdf['x'].values/2
-        # Error propagation. 
-        dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
+        if logdomain: 
+            x_lin = np.exp(avg['x'].values)
+            y_lin = np.exp(avg['y'].values)
+
+            dx = x_lin * (errdf['x'].values / 2)
+            dy = y_lin * (errdf['y'].values / 2) * ypower * (y_lin ** (ypower - 1))
+        else:
+            dx = errdf['x'].values/2
+            # Error propagation. 
+            dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
+        print("2. ymin, ymax", min(ys), max(ys))
         return xs, ys, dx, dy
     else:
         return xs, ys
@@ -184,6 +138,70 @@ def bin_by_values(df, xrange, nbins, by="x", scale="log"):
     # Observed irrelevant (not Categoricals), just to silence deprecation warning.
     binned_indices = df.groupby("bin", observed = True).groups
     return binned_indices, bins
+
+def print_bin_info(strategy, nbins, xrange, fixed_point, silent):
+    if not STRAT_USED[strategy] and not silent:
+        print(f"> Binning ({strategy}) on [{xrange[0]},{xrange[1]}]. "
+              f"Number of bins: {nbins} (evenly spaced on a log scale)."
+              " [bin_and_average]")
+        STRAT_USED[strategy] = True
+        if fixed_point is not None:
+            print(f"> Using fixed point {fixed_point}.")
+
+def get_fixed_point(xs, ys):
+    # Use K% first points to define fixed point, necessary for the 
+    # slope strategy.
+    K = 1
+    xs, ys = np.array(xs), np.array(ys)
+    N = len(xs)
+    imax = int(N*K/100)
+    si = np.argsort(xs)
+    ii = si[:imax]
+
+    fxs = xs[ii]
+    fys = ys[ii]
+    fixed_point = np.mean(fxs), np.mean(fys**0.5)
+    return fixed_point
+
+def add_points(add_after):
+    # Add some fixed point(s).
+    for point in add_after:
+        xs = np.insert(xs, 0, point[0])
+        ys = np.insert(ys, 0, point[1])
+    return xs, ys
+
+def spline(ys, xrange, nbins):
+    ys = list(map(lambda arg: arg**0.5, ys))
+    xrange = list(map(np.log, xrange))
+    
+    which = 3
+    if which==0:
+        sp = interp.interp1d(xs, ys, kind = "cubic")
+    if which==1:
+        sp = interp.InterpolatedUnivariateSpline(xs,ys)
+    if which==2:
+        # The factor is trying to get ~5 knots, same as nbins I was using.
+        sp = interp.UnivariateSpline(xs,ys,s=len(xs)*2.4e-6)
+    if which==3:
+        # Choose the middle knots to match bin boundaries. Exclude the 
+        # endpoints (do [1:-1]) because they're added automatically, see:
+        # print("knots", list(map(np.log10,sp.get_knots())))
+        t = np.logspace(*xrange, nbins, base = np.e)[1:-1]
+            # Remove duplicates or error 'x must be increasing if s>0'.
+        xs = np.array(xs)
+        ys = np.array(ys)
+        _, unique_indices = np.unique(xs, return_index=True)
+        xs = xs[unique_indices]
+        ys = ys[unique_indices]
+
+        
+        sp = interp.LSQUnivariateSpline(xs,ys,t)
+        
+    binwidth = (xrange[1]-xrange[0])/nbins
+    xrange[0] += binwidth/2
+    xrange[1] -= binwidth/2
+    xs = np.logspace(*xrange, nbins, base = np.e)
+    ys = sp(list(xs))
 
 def uniform_points(xrange, npoints, log = False):
     # Generate evenly spaced points in xrange, in a linear or on a log scale.
@@ -279,7 +297,7 @@ def row_log_slope(row, reference):
     slope = calculate_slope(reference, point)
     return slope
 
-def process_raw_estdata(raw_estdata, stat, label = None, errorbars = True):
+def process_raw_estdata(raw_estdata, stat, label = None):
     '''
     Read raw data from EstimationData object, process it, then save processed 
     data to other EstimationData object.
@@ -301,13 +319,8 @@ def process_raw_estdata(raw_estdata, stat, label = None, errorbars = True):
     # than y, such as slopes.
     strat = "y_" + stat
         
-    if errorbars:
-        gxs, gys, xerrs, yerrs = bin_and_average(nqs, sqes, strategy = strat, 
-                                                return_err=True)
-    else:
-        gxs, gys = bin_and_average(nqs, sqes, strategy = strat, 
-                                   return_err=False)
-        xerrs, yerrs = None, None
+    gxs, gys, xerrs, yerrs = bin_and_average(nqs, sqes, strategy = strat, 
+                                            return_err=True)
 
     if label in list(raw_estdata.std_dict.keys()):
         # Plot also std.

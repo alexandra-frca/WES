@@ -60,5 +60,5 @@ if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
     # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
-    plot_from_folder("noisy", stats = ["mean", "median"])
+    plot_from_folder("noiseless", stats = ["mean", "median"])
 
