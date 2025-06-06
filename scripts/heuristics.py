@@ -12,7 +12,7 @@ from src.algorithms.samplers import get_sampler
 from src.utils.models import PrecessionModel
 from src.utils.mydataclasses import MeasurementData, EstimationData, ExecutionData
 from src.utils.misc import sigdecstr
-from utils.plotting import process_and_plot
+from src.utils.plotting import process_and_plot
 from src.utils.running import Runner, BAERunsData
 
 NDIGITS = 3
@@ -30,13 +30,12 @@ class AdaptiveInference():
             print(f"> Set Tc = {Tc}. [warm_up]")
         self.data = MeasurementData([], [], [])
 
-    def infer(self, maxPT, debug = True):
+    def infer(self, maxPT, debug = False):
         sampler = self.sampler
         means = []
         stds = []
         cpts = [0]
         ctrls = []
-        input("input")
         while cpts[-1] < maxPT:
             ctrl = self.choose_control()
             # print("> sampler locs:", sampler.locs)
@@ -240,9 +239,9 @@ if __name__ == "__main__":
         w = 0.1934 
         w = (0,wmax) 
         # Tc can be None, a tuple (denoting a distribution), or a number.
-        Tc = 1000 # (1000, 2000) # None
+        Tc = None # (1000, 2000) # None
         maxPT = 1e7
-        nruns = 10
+        nruns = 1
         t = Test(strat, w, wmax, Tc, maxPT, sampler_str, 
                  sampler_kwargs, save = True, show = True)
         t.sqe_evolution_multiple(nruns, redirect = 0)

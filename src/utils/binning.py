@@ -166,8 +166,8 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
         dx = errdf['x'].values/2
         # Error propagation. 
         dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
-        print("y1", ys)
-        input()
+        print("xs", xs)
+        print("ys", ys)
         return xs, ys, dx, dy
     else:
         return xs, ys
@@ -280,19 +280,6 @@ def row_log_slope(row, reference):
     slope = calculate_slope(reference, point)
     return slope
 
-def sqe_evol_from_file(filename, preprocessed, label):
-    '''
-    Plots the RMSE evolution from a file. Processes the data by binning if 
-    not preprocessed.
-    '''
-    execdata = data_from_file(filename)
-    estdata = execdata.estdata
-    
-    if not preprocessed: 
-        estdata = process_raw_estdata(estdata, label)
-        
-    plot_err_vs_Nq(estdata, exp_fit = False)
-
 def process_raw_estdata(raw_estdata, stat, label = None, errorbars = True):
     '''
     Read raw data from EstimationData object, process it, then save processed 
@@ -308,37 +295,32 @@ def process_raw_estdata(raw_estdata, stat, label = None, errorbars = True):
         estdata = EstimationData.join(estdatas)
         return estdata
         
-    
     nqs = raw_estdata.Nq_dict[label]
     sqes = raw_estdata.err_dict[label]
     
     # Binning strategies need identifiers because they concern quantities other
     # than y, such as slopes.
     strat = "y_" + stat
-    # gxs, gys = bin_and_average(nqs, sqes, strategy = strat)
+        
+    if errorbars:
+        gxs, gys, xerrs, yerrs = bin_and_average(nqs, sqes, strategy = strat, 
+                                                return_err=True)
+    else:
+        gxs, gys = bin_and_average(nqs, sqes, strategy = strat, 
+                                   return_err=False)
+        xerrs, yerrs = None, None
+
     if label in list(raw_estdata.std_dict.keys()):
         # Plot also std.
         stds = raw_estdata.std_dict[label]
-        
-        if errorbars:
-            gxs, gy2s, xerrs, yerrs = bin_and_average(nqs, stds, ypower = 1, 
-                                                    strategy = strat, 
-                                                    return_err=True)
-        else:
-            gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, 
-                                                    strategy = strat, 
-                                                    return_err=False)
-            xerrs, yerrs = None, None
+        gxs, gy2s = bin_and_average(nqs, stds, ypower = 1, strategy = strat)
     else:
         gy2s = None
 
     estdata = EstimationData()
-    print("y1.5", gxs, gy)
     estdata.add_data(label, nqs = gxs, lbs = None, errs = gys, stds = gy2s,
                      xerrs = xerrs, yerrs = yerrs)
     return estdata
-
-
 
 def test_plot_err_vs_Nq():
     '''
