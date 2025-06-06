@@ -76,10 +76,10 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     
     grouped = df.groupby(['bin'], observed = True)
     if strategy=="y_mean" or strategy=="slope_mean":
-        df = grouped.mean().dropna()
+        df = grouped.mean()#.dropna()
     
     if strategy=="y_median" or strategy=="slope_median":
-        df = grouped.median().dropna()
+        df = grouped.median()#.dropna()
 
     if logdomain:
         df['x'] = np.exp(df['x'])
@@ -153,21 +153,20 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
             return xs, ys, None, None
         
         if strategy=="y_mean":        
-            errdf = grouped.std()
+            # If a group happens to only have one point, std is nan.
+            errdf = grouped.std().fillna(0)
             avg = grouped.mean()
             # Standard error of the mean.
             # std_df = std_df / grouped.count().pow(0.5)
         if strategy=="y_median":
             def iqr(x):
                 return np.percentile(x, 75) - np.percentile(x, 25)
-            errdf = grouped.agg(iqr)
+            errdf = grouped.agg(iqr).fillna(0)
             avg = grouped.median()
 
         dx = errdf['x'].values/2
         # Error propagation. 
         dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
-        print("xs", xs)
-        print("ys", ys)
         return xs, ys, dx, dy
     else:
         return xs, ys

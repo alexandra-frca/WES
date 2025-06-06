@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from src.algorithms.BAE import BAE
 from src.algorithms.samplers import get_sampler
 from src.utils.models import PrecessionModel
-from utils.plotting import process_and_plot, plot_single_run
+from src.utils.plotting import process_and_plot, plot_single_run
 from src.utils.mydataclasses import EstimationData, ExecutionData
 from src.utils.misc import (print_centered, dict_str, sigdecstr, k_largest_tuples, 
                         k_smallest_tuples, b10str, dict_info, lprint)
@@ -275,8 +275,8 @@ def test_evol(save, show):
     wmax = 1 # np.pi/2
     w = 0.1934 
     w = (0,wmax)  
-    Tc = 1000 # Tcrange 
-    maxPT = 1e6
+    Tc = None # 1000 # Tcrange 
+    maxPT = 1e4
     nruns = 10
     sampler_str = "RWM"
 

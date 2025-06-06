@@ -305,8 +305,8 @@ def get_logplot(ylabel, title = None, return_fig = False):
         return fig, ax
     return ax
 
-def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 10, 
-                       Nqmax = None, dxs = None, dys = None, error = "shaded"):
+def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0, 
+                       Nqmax = None, dxs = None, dys = None, error = "bars"):
     assert error in ["bars", "shaded"]
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
@@ -357,7 +357,7 @@ def errorbar_plot(ax, x, y, dxs, dys, **kwargs):
                 **kwargs)
     # To avoid empty space to the left?... Not sure why it happens
     xmax = ax.get_xlim()[1]
-    ax.set_xlim(left=10, right=xmax)
+    ax.set_xlim(left=x[0]-max(10, 2*dxs[0]), right=xmax)
 
 def shaded_plot(ax, x, y, dys, **kwargs):
     fmt = kwargs.pop("fmt")
