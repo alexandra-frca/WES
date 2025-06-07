@@ -29,101 +29,22 @@ def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5,
     in it.
     '''
     # strategy = "fit"
-    # Use slightly enlarged xrange so endpoints are included in the bins.
     # xrange = min(xs) - 1, max(xs) + 1
     xrange = min(xs), max(xs)
-    
-    if strategy not in ["slope_mean", "slope_median", "fit", "spline"]:
-         df = DataFrame({"x": xs, "y": ys})
-    else:
-        if fixed_point is None:
-            fixed_point = get_fixed_point(xs, ys)
-        # y coordinates are MSEs, while fixed_point[1] is MSE**0.5.
-        fixed_point_sq = (fixed_point[0], fixed_point[1]**2)
-            
-        slopes = [calculate_slope(fixed_point_sq, (x, y)) for x,y in zip(xs,ys)]
-        df = DataFrame({"x": xs, "y": ys, "slope": slopes})
-    
     print_bin_info(strategy, nbins, xrange, fixed_point, silent)
-    
+    df = create_df(xs, ys, strategy, fixed_point)
     binned_indices, bins = bin_by_values(df, xrange, nbins = nbins+1, 
                                          scale = "log")
-
     grouped_points = group_points(xs, ys, binned_indices)
-    
-    if logdomain:
-        df['x'] = np.log(df['x'])
-        df['y'] = np.log(df['y'])
-    
+    df = to_domain(df, logdomain)
     grouped = df.groupby(['bin'], observed = True)
-    if strategy=="y_mean" or strategy=="slope_mean":
-        df = grouped.mean()#.dropna()
-    
-    if strategy=="y_median" or strategy=="slope_median":
-        df = grouped.median()#.dropna()
-
-    if logdomain:
-        df['x'] = np.exp(df['x'])
-        df['y'] = np.exp(df['y'])
-
+    df = averages(grouped, strategy)
+    df = from_domain(df, logdomain)
     xs = df['x'].values
-    
-    if strategy in ["y_mean", "y_median"]:
-        ys = df['y'].values**ypower
-    if strategy in ["slope_mean", "slope_median"]:
-        ys = eval_power_function(df['x'], df['slope'], fixed_point) 
-        ys = np.array(ys.tolist())**0.5
-    if strategy=="fit":
-        ys = list(map(lambda arg: arg**0.5, ys))
-        f = lambda x, slope: eval_power_function(x, slope, fixed_point) 
-        slope, _ = opt.curve_fit(f, xs, ys)
-        
-        # Take care to evenly space evaluations in logspace. For other methods,
-        # this is done by construction due to calculating points not a function.
-        xrange = list(map(np.log, xrange))
-        binwidth = (xrange[1]-xrange[0])/nbins
-        xrange[0] += binwidth/2
-        xrange[1] -= binwidth/2
-        
-        xs = np.logspace(*xrange, nbins, base = np.e)
-        ys = [eval_power_function(x, slope, fixed_point) for x in xs]
-    if strategy=="spline":
-        ys = spline(ys, xrange, nbins)
-
-    if add_after is not None:
-        xs, ys = add_points(add_after)
-    if full_output:
-        return xs, ys, bins, grouped_points
-    elif return_err:
-        if strategy not in ["y_mean", "y_median"]:
-            return xs, ys, None, None
-        
-        if strategy=="y_mean":        
-            # If a group happens to only have one point, std is nan.
-            errdf = grouped.std().fillna(0)
-            avg = grouped.mean()
-            # Standard error of the mean.
-            # std_df = std_df / grouped.count().pow(0.5)
-        if strategy=="y_median":
-            def iqr(x):
-                return np.percentile(x, 75) - np.percentile(x, 25)
-            errdf = grouped.agg(iqr).fillna(0)
-            avg = grouped.median()
-
-        if logdomain: 
-            x_lin = np.exp(avg['x'].values)
-            y_lin = np.exp(avg['y'].values)
-
-            dx = x_lin * (errdf['x'].values / 2)
-            dy = y_lin * (errdf['y'].values / 2) * ypower * (y_lin ** (ypower - 1))
-        else:
-            dx = errdf['x'].values/2
-            # Error propagation. 
-            dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
-        print("2. ymin, ymax", min(ys), max(ys))
-        return xs, ys, dx, dy
-    else:
-        return xs, ys
+    xs, ys = get_ys(xs, strategy, df, fixed_point, xrange, ypower, add_after, 
+                    nbins)
+    return return_stuff(xs, ys, bins, grouped_points, logdomain, ypower, 
+                        strategy, grouped, full_output, return_err)
     
 def bin_by_values(df, xrange, nbins, by="x", scale="log"):
     if scale == "log":
@@ -139,6 +60,86 @@ def bin_by_values(df, xrange, nbins, by="x", scale="log"):
     binned_indices = df.groupby("bin", observed = True).groups
     return binned_indices, bins
 
+def create_df(xs, ys, strategy, fixed_point):
+    if strategy not in ["slope_mean", "slope_median", "fit", "spline"]:
+         df = DataFrame({"x": xs, "y": ys})
+    else:
+        if fixed_point is None:
+            fixed_point_sq = get_fixed_point(xs, ys)
+            
+        slopes = [calculate_slope(fixed_point_sq, (x, y)) for x,y in zip(xs,ys)]
+        df = DataFrame({"x": xs, "y": ys, "slope": slopes})
+    return df
+
+def averages(grouped, strategy):
+    if strategy=="y_mean" or strategy=="slope_mean":
+        df = grouped.mean()#.dropna()
+    if strategy=="y_median" or strategy=="slope_median":
+        df = grouped.median()#.dropna()
+    return df
+
+def to_domain(df, logdomain):
+    if logdomain:
+        df['x'] = np.log(df['x'])
+        df['y'] = np.log(df['y'])
+    return df 
+
+def from_domain(df, logdomain):
+    if logdomain:
+        df['x'] = np.exp(df['x'])
+        df['y'] = np.exp(df['y'])
+    return df
+
+def return_stuff(xs, ys, bins, grouped_points, logdomain, ypower, strategy,
+                 grouped, full_output, return_err):
+    if full_output:
+        return xs, ys, bins, grouped_points
+    elif return_err:
+        if strategy not in ["y_mean", "y_median"]:
+            return xs, ys, None, None
+        return return_with_errors(xs, ys, grouped, logdomain, ypower, strategy)
+    return xs, ys
+
+def get_ys(xs, strategy, df, fixed_point, xrange, ypower, add_after, nbins):
+    if strategy in ["y_mean", "y_median"]:
+        ys = df['y'].values**ypower
+    if strategy in ["slope_mean", "slope_median"]:
+        ys = eval_power_function(df['x'], df['slope'], fixed_point) 
+        ys = np.array(ys.tolist())**0.5
+    if strategy=="fit":
+        xs, ys = fit_xy(xs, ys, fixed_point, xrange)
+    if strategy=="spline":
+        ys = spline(ys, xrange, nbins)
+    if add_after is not None:
+        xs, ys = add_points(add_after)
+    return xs, ys
+
+def return_with_errors(xs, ys, grouped, logdomain, ypower, strategy):
+    if strategy=="y_mean":        
+        # If a group happens to only have one point, std is nan.
+        errdf = grouped.std().fillna(0)
+        avg = grouped.mean()
+        # Standard error of the mean.
+        # std_df = std_df / grouped.count().pow(0.5)
+    if strategy=="y_median":
+        def iqr(x):
+            return np.percentile(x, 75) - np.percentile(x, 25)
+        errdf = grouped.agg(iqr).fillna(0)
+        avg = grouped.median()
+
+    if logdomain: 
+        x_lin = np.exp(avg['x'].values)
+        y_lin = np.exp(avg['y'].values)
+
+        dx = x_lin * (errdf['x'].values / 2)
+        dy = y_lin * (errdf['y'].values / 2) * ypower * (y_lin ** (ypower - 1))
+    else:
+        dx = errdf['x'].values/2
+        # Error propagation. 
+        dy = errdf['y'].values/2 * ypower * (avg['y'].values ** (ypower - 1))
+
+    return xs, ys, dx, dy
+
 def print_bin_info(strategy, nbins, xrange, fixed_point, silent):
     if not STRAT_USED[strategy] and not silent:
         print(f"> Binning ({strategy}) on [{xrange[0]},{xrange[1]}]. "
@@ -147,6 +148,22 @@ def print_bin_info(strategy, nbins, xrange, fixed_point, silent):
         STRAT_USED[strategy] = True
         if fixed_point is not None:
             print(f"> Using fixed point {fixed_point}.")
+
+def fit_xy(xs, ys, fixed_point, xrange):
+    ys = list(map(lambda arg: arg**0.5, ys))
+    f = lambda x, slope: eval_power_function(x, slope, fixed_point) 
+    slope, _ = opt.curve_fit(f, xs, ys)
+    
+    # Take care to evenly space evaluations in logspace. For other methods,
+    # this is done by construction due to calculating points not a function.
+    xrange = list(map(np.log, xrange))
+    binwidth = (xrange[1]-xrange[0])/nbins
+    xrange[0] += binwidth/2
+    xrange[1] -= binwidth/2
+    
+    xs = np.logspace(*xrange, nbins, base = np.e)
+    ys = [eval_power_function(x, slope, fixed_point) for x in xs]
+    return xs, ys
 
 def get_fixed_point(xs, ys):
     # Use K% first points to define fixed point, necessary for the 
@@ -161,6 +178,8 @@ def get_fixed_point(xs, ys):
     fxs = xs[ii]
     fys = ys[ii]
     fixed_point = np.mean(fxs), np.mean(fys**0.5)
+    # y coordinates are MSEs, while fixed_point[1] is MSE**0.5.
+    fixed_point_sq = (fixed_point[0], fixed_point[1]**2)
     return fixed_point
 
 def add_points(add_after):
