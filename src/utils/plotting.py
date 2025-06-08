@@ -381,17 +381,20 @@ def shaded_plot(ax, x, y, dys, **kwargs):
 MARKER_SHAPES = {'PGH': 's',
                  'sigma': 'v',
                  'WES': '8',
-                 'aWES': '8'}
+                 'aWES': '8',
+                 'random': 'd',}
      
 MARKER_COLORS = {'PGH': 'firebrick',
                  'sigma': 'orange',
                  'WES': 'navy',
-                 'aWES': '#008080'}
+                 'aWES': '#008080',
+                 'random': 'lightskyblue'}
 
 MARKER_SIZES = {'PGH': 82,
                 'sigma': 120,
                 'WES': 80,
-                'aWES': 80}
+                'aWES': 80,
+                 'random': 110}
 
 def fix_key(key):
     '''

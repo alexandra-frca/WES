@@ -21,7 +21,7 @@ stall_counter = 0
 class AdaptiveInference():
 
     def __init__(self, strat, sampler, model, Tc = None):
-        assert strat["heuristic"] in ["sigma", "PGH"]
+        assert strat["heuristic"] in ["sigma", "PGH", "random"]
         self.strat = strat
         self.sampler = sampler
         self.model = model
@@ -31,6 +31,9 @@ class AdaptiveInference():
         self.data = MeasurementData([], [], [])
 
     def infer(self, maxPT, debug = False):
+        if self.strat["heuristic"]=="random":
+            self.set_random_ctrls(maxPT)
+
         sampler = self.sampler
         means = []
         stds = []
@@ -51,21 +54,19 @@ class AdaptiveInference():
             if debug: 
                 print("> Chosen control: ", ctrl, "; total CPT: ", cpts[-1], "measlen", len(means))
                 print("last 10 ctrls:", ctrls[-10:])
-
-            # print(std)
-            '''
-            N = 100
-            if len(stds)>N and (stds[-1] >= stds[-N] or all(x == ctrls[-1] for x in ctrls[-5:-1])):
-                global stall_counter
-                stall_counter += 1
-                print("*** Learning stalled, did not reach maxPT. ***")
-                break
-            '''
             
         print("> Estimated ", mean)
         print("> Total number of measurements: ", len(means))
         # cpts has an initial zero that doesn't correspond to an iteration. 
         return means, stds, cpts[1:]
+
+    def set_random_ctrls(self, maxPT):
+        C = self.strat["C"]
+        ctrls = []
+        while sum(ctrls) < maxPT:
+            ctrls.append(np.random.uniform(0, C))
+        ctrls.sort()
+        self.random_ctrls = ctrls
 
     def choose_control(self):
         heuristic = self.strat["heuristic"]
@@ -84,6 +85,10 @@ class AdaptiveInference():
                 #if counter == 10:
                 #    print("> Counter reached 10!", self.sampler.locs)
             t = C/delta
+            return t
+        if heuristic=="random":
+            t = self.random_ctrls[0]
+            self.random_ctrls = self.random_ctrls[1:]
             return t
         
 class Test():
@@ -220,8 +225,8 @@ if __name__ == "__main__":
                     "log": True,
                     "res_ut": False,
                     "plot": False}
-    strat = {"heuristic": "sigma",
-             "C": 0.75}
+    strat = {"heuristic": "random",
+             "C": 1e3}
     wmax = 1 # np.pi/2
  
     if which == 0:
@@ -240,8 +245,8 @@ if __name__ == "__main__":
         w = (0,wmax) 
         # Tc can be None, a tuple (denoting a distribution), or a number.
         Tc = None # (1000, 2000) # None
-        maxPT = 1e7
-        nruns = 1
+        maxPT = 1e6
+        nruns = 10
         t = Test(strat, w, wmax, Tc, maxPT, sampler_str, 
                  sampler_kwargs, save = True, show = True)
         t.sqe_evolution_multiple(nruns, redirect = 0)

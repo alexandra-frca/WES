@@ -62,16 +62,21 @@ def output_to_file(f):
         
         content, filename_stem = output
         # Create folder if it doesn't exist.
-        created = False
-        if not os.path.exists(filename_stem):
-            os.makedirs(os.path.dirname(filename_stem), exist_ok=True)
-            created = True
-            filename = filename_stem
-
-        if not created: 
-            # Do not overwrite files in old folder; append #i. 
+        print(filename_stem)
+        try:
+            created = False
+            if not os.path.exists(filename_stem):
+                os.makedirs(os.path.dirname(filename_stem), exist_ok=True)
+                created = True
+                filename = filename_stem
+            if not created: 
+                # Do not overwrite files in old folder; append #i. 
+                filename = fix_filename(filename_stem)
+        except FileNotFoundError as e:
+            # This happens if filename_stem is pure filename, not path
+            print(f"> {e}. Skipping path creation.")
             filename = fix_filename(filename_stem)
-        
+
         with open(filename, 'wb') as filehandle:
             pickle.dump(content, filehandle)
         if using_colab:
