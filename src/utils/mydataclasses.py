@@ -425,6 +425,7 @@ ex2.add_data("example2", nqs = [5, 7, 4], lbs = [2, 5, 2])
 #exj = EstimationData.join([ex1, ex2])
 #print(exj)
 
+
 def join_estdata_files(filestart, indices = None, save = False):
     """
     Join multiple EstimationData objects stored in files into a single one.
@@ -646,4 +647,5 @@ class MeasurementData:
     def total_shots(self):
         return sum(self.Nsshots)
 
-
+if __name__ == '__main__':
+    join_estdata_files(filestart, indices = range(13,25))

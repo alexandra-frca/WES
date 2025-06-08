@@ -305,8 +305,10 @@ def get_logplot(ylabel, title = None, return_fig = False):
         return fig, ax
     return ax
 
-def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0, 
-                       Nqmax = None, dxs = None, dys = None, error = "shaded"):
+def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, 
+                       Nqmin = 0, # 5e1, 
+                       Nqmax = None, # 2e5, 
+                       dxs = None, dys = None, error = "shaded"):
     assert error in ["bars", "shaded"]
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
@@ -336,10 +338,9 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, Nqmin = 0,
         
         key = fix_key(key)
         kwargs = plot_kwargs(key)
-        dxs = dxs[key][first_i:]
-        dys = dys[key][first_i:]
+        dxs = dxs[key][first_i:last_i]
+        dys = dys[key][first_i:last_i]
 
-        print("3. ymin, ymax", min(y), max(y))
         if error == "bars":
             errorbar_plot(ax, x, y, dxs, dys, **kwargs)
         if error == "shaded":

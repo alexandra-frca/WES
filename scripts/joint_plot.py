@@ -2,13 +2,14 @@
 Plotting datasets from src/datasets/<folder> together in a graph.
 """
 import os
+import re
 import matplotlib.pyplot as plt
 
 from src.algorithms.BAE import fix_aBAE_label
 from src.utils.plotting import plot_err_evol
 from src.utils.processing import process, safe_save_fig
-from src.utils.files import data_from_file
-from src.utils.mydataclasses import get_label
+from src.utils.files import data_from_file, save_as
+from src.utils.mydataclasses import get_label, EstimationData
 
 PROCESSING = {'sigma': 'binning',
               'PGH': 'binning',
@@ -55,10 +56,37 @@ def get_estdatas(filename_list, stat, silent = False):
                for label, estdata in zip (labels, estdatas)]
     return estdatas
 
+def join_datafiles_from_folder(folder_name):
+    import os 
+    import re
+    from src.utils.files import save_as
+    from src.utils.mydataclasses import EstimationData
+
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    filenames = [file for file in os.listdir(folder_path)]
+    paths = [os.path.join(folder_path, filename) for filename in filenames]
+
+    estdatas = []
+    for path in paths: 
+        estdatas.append(data_from_file(path).estdata)
+
+    combined_dataset = EstimationData.join(estdatas, silent = False)
+
+    nruns = 0 
+    for name in filenames: 
+        c = re.search(r"nruns=(\d+),", name)
+        nruns += int(c.group(1))
+
+    combined_execdata = data_from_file(paths[0])
+    combined_execdata.estdata = combined_dataset
+    combined_execdata.nruns = nruns
+    save_as(combined_execdata, "combined_" + combined_execdata.filename())
+    return combined_dataset
+
 # Previously, "canonical" had "none" processing because it was pre-processed.
 if __name__ == "__main__":
     # plot_from_folder("noiseless", stats = ["mean", "median"])
     # plot_from_folder("noisy", stats = ["mean", "median"])
     # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
-    plot_from_folder("noiseless", stats = ["mean", "median"])
-
+    # join_datafiles_from_folder("BAE")
+    plot_from_folder("noisy", stats = ["mean", "median"])
