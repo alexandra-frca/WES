@@ -61,7 +61,16 @@ def output_to_file(f):
             return
         
         content, filename_stem = output
-        filename = fix_filename(filename_stem)
+        # Create folder if it doesn't exist.
+        created = False
+        if not os.path.exists(filename_stem):
+            os.makedirs(os.path.dirname(filename_stem), exist_ok=True)
+            created = True
+            filename = filename_stem
+
+        if not created: 
+            # Do not overwrite files in old folder; append #i. 
+            filename = fix_filename(filename_stem)
         
         with open(filename, 'wb') as filehandle:
             pickle.dump(content, filehandle)

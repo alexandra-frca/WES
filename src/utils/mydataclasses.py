@@ -191,6 +191,24 @@ class EstimationData():
         self.yerr_dict = {}
         self.warmup_dict = {}
 
+    def crop_data(self, Nqmin, Nqmax):
+        print("> Cropping data...")
+        
+        dicts = [self.Nq_dict, 
+                 self.err_dict, 
+                 self.std_dict]
+
+        for key in self.Nq_dict:
+            zipped = zip(*(d[key] for d in dicts)) 
+            filtered = [items for items in zipped if Nqmin <= items[0] <= Nqmax]
+            for d, new_vals in zip(dicts, zip(*filtered)):  
+                d[key] = list(new_vals)
+
+    def Nq_range(self):
+        for key in self.Nq_dict.keys():
+            Nqs = self.Nq_dict[key]
+            print(f"> {key}: Nq_min = {min(Nqs)}, Nq_max = {max(Nqs)}.")
+
     def is_empty(self):
         """
         Checks if the EstimationData object is empty.

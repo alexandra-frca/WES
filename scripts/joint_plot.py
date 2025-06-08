@@ -39,7 +39,7 @@ def dataset_filenames_from_folder(folder_name, silent = False):
     full_paths = [os.path.join(folder_path, filename) for filename in filenames]
     return full_paths
 
-def get_estdatas(filename_list, stat, silent = False):
+def get_estdatas(filename_list, stat, silent = False, print_maxs = True):
     '''
     Get estimation data objects from the execution data objects in the files
     and process them.
@@ -52,16 +52,22 @@ def get_estdatas(filename_list, stat, silent = False):
             fix_aBAE_label(exd)
 
     estdatas = [execdata.estdata for execdata in execdatas]
+
+    if print_maxs:
+        maxctrl = 0
+        for estdata in estdatas: 
+            key = list(estdata.Nq_dict.keys())[0]
+            Nqs = estdata.Nq_dict[key]
+            imax = Nqs.index(max(Nqs))
+            Nqmax = Nqs[imax]
+            prev = Nqs[imax - 1] 
+            print(f"> Max control for {key}: ", Nqmax - prev)
+
     estdatas = [process(estdata, stat, how = PROCESSING[label])
                for label, estdata in zip (labels, estdatas)]
     return estdatas
 
 def join_datafiles_from_folder(folder_name):
-    import os 
-    import re
-    from src.utils.files import save_as
-    from src.utils.mydataclasses import EstimationData
-
     folder_path = os.path.join(os.getcwd(), folder_name)
     filenames = [file for file in os.listdir(folder_path)]
     paths = [os.path.join(folder_path, filename) for filename in filenames]
@@ -83,10 +89,30 @@ def join_datafiles_from_folder(folder_name):
     save_as(combined_execdata, "combined_" + combined_execdata.filename())
     return combined_dataset
 
-# Previously, "canonical" had "none" processing because it was pre-processed.
+def crop_datafiles_from_folder(foldername, Nqmin, Nqmax):
+    '''
+    Remove Nq, err, std data for which Nq falls outside of [Nqmin, Nqmax].
+    The point is matching different datasets to the same range. 
+    Saves new datasets to datasets/`previous_folder_name`_cropped
+    '''
+    folder_path = os.path.join(os.getcwd(), "datasets", foldername)
+    filenames = [file for file in os.listdir(folder_path)]
+
+    estdatas = []
+    for filename in filenames:
+        path = os.path.join(folder_path, filename)
+        execdata = data_from_file(path)
+        estdata = execdata.estdata
+        estdata.Nq_range()
+        estdata.crop_data(Nqmin, Nqmax)
+        estdata.Nq_range()
+        execdata.estdata = estdata 
+        new_path = os.path.join(os.getcwd(), "datasets", foldername + "_cropped", filename)
+        save_as(execdata, new_path)
+    
+
 if __name__ == "__main__":
-    # plot_from_folder("noiseless", stats = ["mean", "median"])
-    # plot_from_folder("noisy", stats = ["mean", "median"])
-    # plot_from_folder("noiseless_1934", stats = ["mean", "median"])
     # join_datafiles_from_folder("BAE")
-    plot_from_folder("noisy", stats = ["mean", "median"])
+    # crop_datafiles_from_folder("noisy", 10e2, 2e6)
+    # crop_datafiles_from_folder("noiseless", 10e2, 2e6)
+    plot_from_folder("noiseless", stats = ["mean"])

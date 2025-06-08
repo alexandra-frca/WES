@@ -102,7 +102,7 @@ class Test():
 
     @staticmethod
     def rand_pstr(param):
-        return f"[{param[0]},{param[1]}]"
+        return f"[{param[0]},{round(param[1],2)}]"
     
     def param_str(self):
         w_str = (self.rand_pstr(self.w) if isinstance(self.w,tuple)
