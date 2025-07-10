@@ -23,3 +23,6 @@ pip-delete-this-directory.txt
 *.swo
 *.bak
 *.orig
+
+# Ignore specific data file which is too large.
+datasets/noiseless/random_080625_2212_w=[0,1.57];Tc=None,nruns=10^2.0,nshots=1,STRAT=(heuristic=random,C=1000.0),RWM(Npart=2000,thr=0.5,var=w,ut=var,log=T,res_ut=F,plot=F)#0.data

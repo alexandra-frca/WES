@@ -5,7 +5,7 @@ import os
 import re
 import matplotlib.pyplot as plt
 
-from src.algorithms.BAE import fix_aBAE_label
+from algorithms.WES import fix_aWES_label, change_execdata_label
 from src.utils.plotting import plot_err_evol
 from src.utils.processing import process, safe_save_fig
 from src.utils.files import data_from_file, save_as
@@ -13,9 +13,10 @@ from src.utils.mydataclasses import get_label, EstimationData
 
 PROCESSING = {'sigma': 'binning',
               'PGH': 'binning',
-              'BAE': 'binning'}
+              'WES': 'binning',
+              'random': 'binning'}
 
-def plot_from_folder(folder, stats, silent = False, save = False):
+def plot_from_folder(folder, stats, errdisplay, silent = False, save = False):
     '''
     Plot together all the datasets in the folder 'folder' of the folder 
     'datasets'.
@@ -24,7 +25,7 @@ def plot_from_folder(folder, stats, silent = False, save = False):
     fnlist = dataset_filenames_from_folder(folder)
     for stat in stats:
         estdatas = get_estdatas(fnlist, stat, silent)
-        plot_err_evol("RMSE", estdatas, stat)
+        plot_err_evol("RMSE", estdatas, stat, errdisplay = errdisplay)
         if save:
             safe_save_fig(f"joint_{stat}_")
         plt.show()
@@ -39,7 +40,7 @@ def dataset_filenames_from_folder(folder_name, silent = False):
     full_paths = [os.path.join(folder_path, filename) for filename in filenames]
     return full_paths
 
-def get_estdatas(filename_list, stat, silent = False, print_maxs = True):
+def get_estdatas(filename_list, stat, silent = False, print_maxs = False):
     '''
     Get estimation data objects from the execution data objects in the files
     and process them.
@@ -48,9 +49,13 @@ def get_estdatas(filename_list, stat, silent = False, print_maxs = True):
     labels = [get_label(execdata) for execdata in execdatas]
 
     for label, exd in zip(labels, execdatas):
-        if label == "BAE":
-            fix_aBAE_label(exd)
-
+        if label == "WES":
+            fix_aWES_label(exd)
+        if label == "sigma":
+            change_execdata_label(exd, "sigma", "SH")
+        if label == "random":
+            change_execdata_label(exd, "random", "RTS")
+            
     estdatas = [execdata.estdata for execdata in execdatas]
 
     if print_maxs:
@@ -112,7 +117,9 @@ def crop_datafiles_from_folder(foldername, Nqmin, Nqmax):
     
 
 if __name__ == "__main__":
-    # join_datafiles_from_folder("BAE")
+    # join_datafiles_from_folder("ESS")
     # crop_datafiles_from_folder("noisy", 10e2, 2e6)
     # crop_datafiles_from_folder("noiseless", 10e2, 2e6)
-    plot_from_folder("noiseless", stats = ["mean"])
+    errdisplay = "bars"
+    # errdisplay = "shaded"
+    plot_from_folder("single", errdisplay = errdisplay, stats = ["mean"])

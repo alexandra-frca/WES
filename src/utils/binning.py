@@ -12,7 +12,7 @@ from src.utils.plotting import plot_err_evol
     
 strats = ["y_mean", "y_median", "slope_mean", "slope_median", "fit", "spline"]
 STRAT_USED = {s: False for s in strats}
-def bin_and_average(xs, ys, fixed_point = None, nbins = 15, ypower = 0.5, 
+def bin_and_average(xs, ys, fixed_point = None, nbins = 20, ypower = 0.5, 
                     add_after = None, full_output = False, return_err = False,
                     strategy = "y_mean", logdomain = True, silent = True):
     '''

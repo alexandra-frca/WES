@@ -157,9 +157,9 @@ class EstimationData():
 
     Example EstimationData object:
 
-    estdata.nqs = {'LIS': [1, 2, 3], 'BAE': [1, 2, 3]}
+    estdata.nqs = {'LIS': [1, 2, 3], 'WES': [1, 2, 3]}
     estdata.lbs = {'LIS': [1, 2, 3]}
-    estdata.errs = {'LIS': [1, 2, 3], 'BAE': [1, 2, 3]}
+    estdata.errs = {'LIS': [1, 2, 3], 'WES': [1, 2, 3]}
 
     Not all data categories contain all labels necessarily, except Nq_dict.
 
@@ -173,7 +173,7 @@ class EstimationData():
         std_dict (dict): A dictionary of (algorithm_label, squence of values for
             the standard deviation) pairs.
         warmup_dict (dict): A dictionary containing the warmup configuration
-        (for BAE).
+        (for WES).
 
     Methods:
         add_data(key, nqs, lbs, errs, stds, warmup): adds data.
@@ -239,7 +239,7 @@ class EstimationData():
             errs (list): A sequence of values for the estimation error.
             stds (list): A sequence of values for the standard deviation.
             warmup (dict): A dictionary containing the warmup configuration
-                (for BAE).
+                (for WES).
         """
         if nqs is not None:
             self.Nq_dict[key] = nqs
@@ -272,7 +272,7 @@ class EstimationData():
             errs (list, optional): Additional values for the estimation error.
             stds (list, optional): Additional values for the standard deviation.
             warmup (dict, optional): Additional warmup configuration data
-                (for BAE).
+                (for WES).
         """
         if nqs is not None:
             self.Nq_dict[key] += nqs
@@ -361,7 +361,7 @@ class EstimationData():
         """
         Condenses the warmup data in the provided dictionary by combining
         tuples. The goal is to obtain average statistics over multiple runs of
-        BAE that have the same number of warm up shots.
+        WES that have the same number of warm up shots.
 
         Parameters:
         warmup_dict (dict): The original warm up dictionary.
@@ -535,17 +535,17 @@ class ExecutionData:
         return s
 
     def filename(self):
-        # Print nruns as an integer for BQAE, because it's slower usually less
+        # Print nruns as an integer for WES, because it's slower usually less
         # executions.
-        if self.label=="BQAE":
+        if self.label=="WES":
             self.nruns = str(self.nruns)
         runstr = (f"nruns={self.nruns}" if isinstance(self.nruns, str)
                   else f"nruns={b10str(self.nruns)}")
         timestamp = datetime.now(pytz.timezone('Portugal')).strftime("%d%m%y_%H%M")
         fname = (f"{self.label}_{timestamp}_{self.a},"
                  + f"{runstr},")
-        if self.label != "BQAE":
-            # BQAE already prints shots in strat info.
+        if self.label != "WES":
+            # WES already prints shots in strat info.
             fname +=  f"nshots={self.nshots}"
         if self.extra_info is not None:
             fname += f",{self.extra_info}"
@@ -556,17 +556,11 @@ class ExecutionData:
         save_as(self, self.filename())
 
 def get_label(execdata):
-    '''
-    Workaround because I saved classical AE with label 'classical_AE', SQAE
-    using formula 2 with label 'SQAE_f2', etc. Labels must correspond to the
-    ones used in the EstimationData dictionaries. So these should instead be
-    'classical', 'SQAE #2'. In the future, fix this. But can patch if working
-    with older datasets.
-    '''
     label = execdata.label
-    split = label.split('_', 1)
-    if label=="BQAE":
-        label = "BAE"
+    return label
+    # split = label.split('_', 1)
+    # if label=="WES":
+    #     label = "WES"
 
     # Verify if the split created a single string, which also behaves as list.
     if len(split)==1:

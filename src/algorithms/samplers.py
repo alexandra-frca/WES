@@ -25,7 +25,7 @@ class SMCsampler():
     def __init__(self, model: LikelihoodModel, Npart = 1000,  thr = 0.5, 
                  var = "w", ut = "var", Tc_est = None, plot = False, log = False, 
                  prior = "uniform", res_ut = False):
-        assert ut in ["var", "ESS"]
+        assert ut in ["var", "ESS", "varN2"]
         assert prior in ["uniform", "normal"]
 
         self.Npart = Npart
@@ -108,10 +108,10 @@ class SMCsampler():
         '''
         if not (self.og or self.res_ut):
             return 0
-        if self.ut == "var":
-            return self.tgESS
         if self.ut == "ESS":
             return 1
+        else:
+            return self.tgESS
     
     def update_latest(self, data):
         '''
@@ -370,9 +370,21 @@ class SMCsampler():
         '''
         return np.exp(self.ws[i]-self.lnorm)
     
-    def expected_utilities(self, ctrls: [float], data):
+    def expected_utilities(self, ctrls: [float], data, compare_N2 = False):
         utils = [self.expected_utility(ctrl, data) for ctrl in ctrls]
         # utils = self.expected_utility(ctrls, data) 
+        if self.ut == "varN2" and compare_N2:
+            # Compare choices for utility varN2 vs. var.
+            self.ut = "var"
+            utils2 = [self.expected_utility(ctrl, data) for ctrl in ctrls]
+            i = utils.index(max(utils))
+            M = ctrls[i]
+            U = utils[i]
+            i2 = utils2.index(max(utils2))
+            M2 = ctrls[i2]
+            U2 = utils2[i2]
+            print(f"*varN2 vs var: {M = }, {U = } | {M2 = }, {U2 = }")
+            self.ut = "varN2"
         return np.array(utils)
     
     def expected_utility(self, ctrl: float, data):
@@ -398,7 +410,6 @@ class SMCsampler():
         sampler_cpy.plot = False
         sampler_cpy.og = False
         sampler_cpy.update_latest(data_cpy)
-        
         if self.ut == "var":
             _, std = sampler_cpy.mean_and_std()
             var = std**2
@@ -406,6 +417,11 @@ class SMCsampler():
         elif self.ut == "ESS":
             ESS = sampler_cpy.ess_list[-1]
             return -abs(self.tgESS-ESS/self.Npart)
+        elif self.ut == "varN2":
+            _, std1 = self.mean_and_std()
+            _, std2 = sampler_cpy.mean_and_std()
+            dstd = std2 - std1
+            return -np.sign(dstd)*dstd**2*ctrl**2
             
     def expected_probability(self, ctrl, outcome):
         likelihood = self.model.likelihood

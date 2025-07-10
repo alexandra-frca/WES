@@ -374,9 +374,9 @@ def fix_key(key):
     '''
     For earlier datasets where label wasn't altered to WES. 
     '''
-    if key=="BAE":
+    if key=="WES":
         return "WES"
-    elif key=="aBAE":
+    elif key=="aWES":
         return "aWES"
     else:
         return key
@@ -395,9 +395,9 @@ def label_from_key(key):
         return "mIAE"
     elif key == "canonical":
         return "QAE"
-    elif key=="BAE":
+    elif key=="WES":
         return "WES"
-    elif key=="aBAE":
+    elif key=="aWES":
         return "aWES"
     else:
         # Write IQAE -> IAE, etc. for simplicity

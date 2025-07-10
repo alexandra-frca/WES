@@ -13,7 +13,7 @@ from src.utils.models import PrecessionModel
 from src.utils.mydataclasses import MeasurementData, EstimationData, ExecutionData
 from src.utils.misc import sigdecstr
 from src.utils.plotting import process_and_plot
-from src.utils.running import Runner, BAERunsData
+from src.utils.running import Runner, WESRunsData
 
 NDIGITS = 3
 
@@ -149,7 +149,7 @@ class Test():
             return self.Tc
 
     def sqe_evolution_multiple(self, nruns, redirect = 0):
-        rdata = BAERunsData()
+        rdata = WESRunsData()
         runner = Runner(f = self.sqe_evolution, nruns = nruns, timeout = 3,
                         process_fun = rdata.add_run_data, redirect = redirect,
                         silent = self.silent, save = self.save)

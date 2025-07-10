@@ -281,9 +281,9 @@ class PrintManager():
         return False
        
 @dataclass
-class BAERunsData:
+class WESRunsData:
     '''
-    For managing the data of BAE runs.
+    For managing the data of WES runs.
     '''
     nqs: [int] = field(default_factory=list) 
     sqes: [float] = field(default_factory=list) 
@@ -317,9 +317,9 @@ class BAERunsData:
 
 
 @dataclass
-class BAERunData:
+class WESRunData:
     '''
-    For managing the data of a single BAE run.
+    For managing the data of a single WES run.
     '''
     # Sampler for calculating the means and standard deviations.
     sampler: SMCsampler

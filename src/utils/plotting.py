@@ -230,7 +230,7 @@ LONG =  {"RMSE": "*avgtype* error",
 def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit", 
                   limits = True, CRbounds = False, plot_fit = False, 
                   iconpath = None, exp_fit = True, lims = None,
-                  title = None, plotlims = True): 
+                  title = None, plotlims = True, errdisplay = "bars"): 
     '''
     Plot either the evolution of either the true error, given by the RMSE 
     (which = "RMSE"), or its estimate, given by the standard deviation 
@@ -255,7 +255,7 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
             # print(f"> No {stat} data to plot for {which}. [plot_err_evol]")
             return 
         id = plot_error_scatter(Nq_dict, y_dict, ax, iconpath, 
-                                dxs = dxs, dys = dys)
+                                dxs = dxs, dys = dys, errdisplay = errdisplay)
     
     if len(estdatas) == 1 and plotlims:
         assert not estdata.is_empty()
@@ -266,7 +266,7 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
         # Plot Cramér-Rao lower bounds for the estimation error.
         plot_CR_bounds(Nq_dict, lb_dict, ax, plot_fit)
         
-    plt.legend(loc="lower left", fontsize=12, framealpha=0.8)
+    arrange_legend(sort = False)
     
     if lims is not None:
         xlim, ylim = lims
@@ -277,6 +277,17 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
     #      " [plot_err_vs_Nq]")
     
     return id #ax.get_xlim(), ax.get_ylim()
+
+def arrange_legend(sort):
+    if sort: 
+        handles, labels = plt.gca().get_legend_handles_labels()
+        print(handles, labels)
+        sorted_handles_labels = sorted(zip(labels, handles), key=lambda x: x[0])
+        sorted_labels, sorted_handles = zip(*sorted_handles_labels)
+        plt.legend(sorted_handles, sorted_labels, loc="lower left", 
+                    fontsize=12, framealpha=0.8)
+    else:
+        plt.legend(loc="lower left", fontsize=12, framealpha=0.8)
     
 def get_logplot(ylabel, title = None, return_fig = False):
     fig, ax = plt.subplots(1,figsize=(10,6))
@@ -295,21 +306,25 @@ def get_logplot(ylabel, title = None, return_fig = False):
     
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
-    
+
+    from matplotlib.ticker import LogLocator
+    ax.xaxis.set_minor_locator(LogLocator(base=10.0, subs='auto', numticks=10))
+    ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs='auto', numticks=10))
+        
     ax.spines['right'].set_color('lightgray')
     ax.spines['top'].set_color('lightgray')
     
-    ax.grid(which='both')
+    ax.grid(which='both', linestyle='--', linewidth=0.5)
     
     if return_fig:
         return fig, ax
     return ax
 
 def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, 
-                       Nqmin = 0, # 5e1, 
-                       Nqmax = None, # 2e5, 
-                       dxs = None, dys = None, error = "shaded"):
-    assert error in ["bars", "shaded"]
+                       Nqmin =  0, #3e1, # noiseless: 3e1, noisy: 1e3
+                       Nqmax = None, # 1e7,# noiseless: 1e7, noisy: 1e6 
+                       dxs = None, dys = None, errdisplay = "shaded"):
+    assert errdisplay in ["bars", "shaded"]
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
                            zoom=0.5 if iconpath=="jface.png" else 0.05)
@@ -341,9 +356,9 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None,
         dxs = dxs[key][first_i:last_i]
         dys = dys[key][first_i:last_i]
 
-        if error == "bars":
+        if errdisplay == "bars":
             errorbar_plot(ax, x, y, dxs, dys, **kwargs)
-        if error == "shaded":
+        if errdisplay == "shaded":
             shaded_plot(ax, x, y, dys, **kwargs)
     return id
 
@@ -353,13 +368,25 @@ def plot_kwargs(key):
             "color": MARKER_COLORS[key],
             "label": label_from_key(key)}
 
-def errorbar_plot(ax, x, y, dxs, dys, **kwargs):
+def errorbar_plot(ax, x, y, dxs, dys, xmin = 1e3, **kwargs):
     ax.errorbar(x, y, xerr = dxs, yerr = dys, markeredgecolor = 'black', 
                 markeredgewidth = 0.75, elinewidth=0.75, capsize=3, ecolor = 'black',
                 **kwargs)
+    brute = False
+    # ax.set_xlim(1e0, None)
+    # return
+    if brute: 
+        # Noisy. 
+        ax.set_xlim(8e2, 1.2e6)
+        ax.set_ylim(1e-5, 5e-1)
+        return 
+    
     # To avoid empty space to the left?... Not sure why it happens
     xmax = ax.get_xlim()[1]
-    ax.set_xlim(left=x[0]-max(10, 2*dxs[0]), right=xmax)
+    if xmin is None: 
+        ax.set_xlim(left=max(0.1, 2*dxs[0]), right=xmax)
+    else: 
+        ax.set_xlim(left=xmin, right=xmax)
 
 def shaded_plot(ax, x, y, dys, **kwargs):
     fmt = kwargs.pop("fmt")
@@ -379,30 +406,30 @@ def shaded_plot(ax, x, y, dys, **kwargs):
     )
 
 MARKER_SHAPES = {'PGH': 's',
-                 'sigma': 'v',
+                 'SH': 'v',
                  'WES': '8',
                  'aWES': '8',
-                 'random': 'd',}
+                 'RTS': 'd',}
      
 MARKER_COLORS = {'PGH': 'firebrick',
-                 'sigma': 'orange',
+                 'SH': 'orange',
                  'WES': 'navy',
                  'aWES': '#008080',
-                 'random': 'lightskyblue'}
+                 'RTS': 'lightskyblue'}
 
 MARKER_SIZES = {'PGH': 82,
-                'sigma': 120,
+                'SH': 120,
                 'WES': 80,
                 'aWES': 80,
-                 'random': 110}
+                 'RTS': 110}
 
 def fix_key(key):
     '''
     For earlier datasets where label wasn't altered to WES. 
     '''
-    if key=="BAE":
+    if key=="WES":
         return "WES"
-    elif key=="aBAE":
+    elif key=="aWES":
         return "aWES"
     else:
         return key
@@ -421,9 +448,9 @@ def label_from_key(key):
         return "mIAE"
     elif key == "canonical":
         return "QAE"
-    elif key=="BAE":
+    elif key=="WES":
         return "WES"
-    elif key=="aBAE":
+    elif key=="aWES":
         return "aWES"
     else:
         # Write IQAE -> IAE, etc. for simplicity
@@ -516,8 +543,12 @@ def power_fit(xs, ys, label = "", seq=None):
     Or equivalently:
                                log(y)=m*log(x)+b
     '''
+    lower_bounds = [-1, -np.inf]  # m >= -1, b unbounded
+    upper_bounds = [np.inf, np.inf]
     cf = opt.curve_fit(lambda x, m, b: m*x+b,  
-                                np.log(xs),  np.log(ys))
+                                np.log(xs),  np.log(ys),
+                                bounds = (lower_bounds,
+                                          upper_bounds))
     m, b = cf[0] 
     
     label = "RMSE" if len(label) == 0 else label
