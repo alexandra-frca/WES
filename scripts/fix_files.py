@@ -5,7 +5,7 @@ the module names were different.
 import sys 
 import pickle
 import src.utils.mydataclasses
-from scripts.joint_plot import dataset_filenames_from_folder
+from scripts.plotting_from_files import dataset_filenames_from_folder
 from src.utils.files import data_from_file
 
 def fix_datafiles(folder,  old_names, new_modules):

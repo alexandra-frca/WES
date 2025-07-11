@@ -7,7 +7,7 @@ import scipy.optimize as opt
 from copy import deepcopy
 import re 
 
-from src.algorithms.samplers import get_sampler
+from src.utils.samplers import get_sampler
 from src.utils.running import WESRunData
 from src.utils.running import PrintManager
 from src.utils.misc import  b10str, kwarg_str, round_if_float, dict_info, sigdecstr
@@ -439,9 +439,14 @@ def fix_aWES_label(execdata):
             for d in execdata.estdata.unpack_data():
                 if d:
                     d[new] = d.pop(old)
+        # If it did anything, i.e. if execdata used ESS based utility-
+        return 1
+    return 0
 
 def change_execdata_label(execdata, old, new):
+    # Change label of ExecutionData object.
     execdata.label = new
     for d in execdata.estdata.unpack_data():
-        if d:
+        # Change also dict keys in each EstimationData object. 
+        if d and new not in list(d.keys()):
             d[new] = d.pop(old)

@@ -1,5 +1,5 @@
 '''
-Binning to treat adaptive QAE data.
+Binning to treat adaptive data.
 '''
 from scipy import interpolate as interp, optimize as opt
 import numpy as np

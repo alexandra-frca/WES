@@ -4,9 +4,9 @@ authors:
   - family-names: Ramôa
     given-names: Alexandra
     orcid: https://orcid.org/0000-0001-5781-7394
-title: "Bayesian Quantum Amplitude Estimation"
+title: "Qubit Frequency Estimation"
 version: 2.0.4
 identifiers:
   - type: url
     value: https://github.com/alexandra-frca/WES
-date-released: 2024-12-05
+date-released: 2025-06-05

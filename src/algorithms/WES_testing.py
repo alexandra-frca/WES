@@ -12,7 +12,7 @@ os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 import numpy as np
 import matplotlib.pyplot as plt
 from src.algorithms.WES import WES
-from src.algorithms.samplers import get_sampler
+from src.utils.samplers import get_sampler
 from src.utils.models import PrecessionModel
 from src.utils.plotting import process_and_plot, plot_single_run
 from src.utils.mydataclasses import EstimationData, ExecutionData
@@ -23,7 +23,7 @@ from src.utils.running import Runner, WESRunsData
 NDIGITS = 4
 
 class TestWES():
-    def __init__(self, w, wmax, Tc_opts, strat, maxPT, sampler_str, sampler_kwargs,
+    def __init__(self, strat, w, wmax, Tc_opts, maxPT, sampler_str, sampler_kwargs,
                  silent = False, save = True, show = True):
         self.w = w
         self.wmax = wmax
@@ -36,6 +36,7 @@ class TestWES():
         self.maxPT = maxPT
         self.Tc_precalc = Tc_opts["Tc_precalc"]
         self.known_Tc = Tc_opts["known_Tc"]
+        self.prefix = "a" if sampler_kwargs["ut"] == "ESS" else ""
         self.sampler_str = sampler_str
         self.sampler_kwargs = sampler_kwargs
         self.silent = silent
@@ -52,7 +53,7 @@ class TestWES():
 
     @staticmethod
     def rand_pstr(param):
-        return f"[{param[0]},{param[1]}]"
+        return f"[{param[0]},{round(param[1],2)}]"
 
     @property
     def local_w(self):
@@ -107,7 +108,7 @@ class TestWES():
         
         '''
         def print_info():
-            info = ["Bayesian adaptive QAE"]
+            info = [f"Bayesian adaptive {self.prefix}WES"]
             info.append("- scaling of the estimation error with Nq")
 
             info.append("\n~ Exec details ~")
@@ -125,7 +126,7 @@ class TestWES():
 
             print_centered(info)
 
-        print(f"> Will test {nruns} runs of 'Bayesian QAE'.")
+        print(f"> Will test {nruns} runs of '{self.prefix}WES'.")
         if not self.silent:
             print_info()
         rdata = WESRunsData()
@@ -153,7 +154,7 @@ class TestWES():
 
     def sqe_evolution(self, i, debug = False):
         '''
-        Perform a single run of Bayesian adaptive QAE, and return lists of the
+        Perform a single run of Bayesian adaptive WES, and return lists of the
         numbers of queries, errors and standard deviations (ordered by step).
         '''
         w = self.local_w; Tc = self.local_Tc
@@ -232,7 +233,7 @@ class TestWES():
         Organize information into a EstimationData object.
         '''
         raw_estdata = EstimationData()
-        raw_estdata.add_data("WES", nqs = nqs, lbs = None, errs = sqes,
+        raw_estdata.add_data(f"{self.prefix}WES", nqs = nqs, lbs = None, errs = sqes,
                              stds = stds)
         return raw_estdata
 
@@ -246,7 +247,7 @@ class TestWES():
         extra = f"{strat_info},{sampler_info}"
         Ns = (self.strat["wNs"], self.strat["Ns"])
         exdata = ExecutionData(self.param_str(), raw_estdata, nruns,
-                               Ns, label="WES",
+                               Ns, label=f"{self.prefix}WES",
                                extra_info = extra)
         return exdata
 
@@ -277,7 +278,7 @@ def test_evol(save, show):
     w = (0,wmax)  
     Tc = None # 1000 # Tcrange 
     maxPT = 1e7
-    nruns = 100
+    nruns = 1
     sampler_str = "RWM"
 
     Tc_opts = {"Tc": Tc,
@@ -308,12 +309,12 @@ def test_evol(save, show):
     if sampler_str=="LW":
         sampler_kwargs["a_LW"] = 0.98
 
-    Test = TestWES(w, wmax, Tc_opts, strat, maxPT, sampler_str,
+    Test = TestWES(strat, w, wmax, Tc_opts, maxPT, sampler_str,
                         sampler_kwargs, save = save, show = show)
 
     Test.sqe_evolution_multiple(nruns)
 
 if __name__ == "__main__":
-    save = False
+    save = True
     show = True
     test_evol(save, show)

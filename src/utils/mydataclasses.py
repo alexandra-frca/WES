@@ -542,7 +542,19 @@ class ExecutionData:
         runstr = (f"nruns={self.nruns}" if isinstance(self.nruns, str)
                   else f"nruns={b10str(self.nruns)}")
         timestamp = datetime.now(pytz.timezone('Portugal')).strftime("%d%m%y_%H%M")
-        fname = (f"{self.label}_{timestamp}_{self.a},"
+        if isinstance(self.a, str):
+            # e.g. "w=[0,1.5707963267948966];Tc=None"
+            # Round upper limit because many digits -> long filename. 
+            # Lower limit usually 0. 
+            # This for old files, for new the param_str is rounded from start.
+            import ast
+            astr, tstr = self.a[2:].split(';')
+            l,h = ast.literal_eval(astr)
+            a = f"a=[{l},{round(h, 2)}];{tstr}"
+        else: 
+            a = self.a
+
+        fname = (f"{self.label}_{timestamp}_{a},"
                  + f"{runstr},")
         if self.label != "WES":
             # WES already prints shots in strat info.

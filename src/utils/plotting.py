@@ -124,6 +124,7 @@ def plot_single_run(nqs, stds, errs, rl, wNs, Ns, el, accl, essl, title):
                     linestyle = 'dotted', linewidth = 2.5)
 
     combine_legends([ax, ax2, ax3])
+    plt.tight_layout()
     plt.show()
     safe_save_fig("single_run")
 
@@ -134,7 +135,7 @@ def combine_legends(axs):
     handles = [x for l in handles for x in l]
     labels = [x for l in labels for x in l]
 
-    plt.legend(handles, labels, loc="lower left", fontsize=12, framealpha=0.8)
+    plt.legend(handles, labels, loc="lower left", fontsize=25, framealpha=0.8)
 
 def fix_sampler_lists(rl, nqs, wNs, Ns, accl, essl):
     '''
@@ -230,7 +231,8 @@ LONG =  {"RMSE": "*avgtype* error",
 def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit", 
                   limits = True, CRbounds = False, plot_fit = False, 
                   iconpath = None, exp_fit = True, lims = None,
-                  title = None, plotlims = True, errdisplay = "bars"): 
+                  title = None, plotlims = True, errdisplay = "bars",
+                  xrg = None): 
     '''
     Plot either the evolution of either the true error, given by the RMSE 
     (which = "RMSE"), or its estimate, given by the standard deviation 
@@ -243,6 +245,9 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
     if stat == "mean" and which=="RMSE":
         label = label.replace("mean", "root mean squared")
         
+    if xrg is not None and lims is not None and xrg[0] < lims[0][0]:
+        xrg[0] = lims[0][0] 
+
     ax = get_logplot(ylabel = label.capitalize(), title = title)
     for estdata in estdatas:
         Nq_dict, lb_dict, err_dict, std_dict = estdata.unpack_data()
@@ -254,13 +259,14 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
         if len(y_dict)==0:
             # print(f"> No {stat} data to plot for {which}. [plot_err_evol]")
             return 
-        id = plot_error_scatter(Nq_dict, y_dict, ax, iconpath, 
-                                dxs = dxs, dys = dys, errdisplay = errdisplay)
+        id, xrg2 = plot_error_scatter(Nq_dict, y_dict, ax, iconpath, 
+                                dxs = dxs, dys = dys, errdisplay = errdisplay,
+                                xrg = xrg)
     
     if len(estdatas) == 1 and plotlims:
         assert not estdata.is_empty()
         # Plot the SQL and HL, unless there are several datasets.
-        plot_limits(Nq_dict, y_dict, ax, yintercept, label)
+        plot_limits(Nq_dict, y_dict, ax, yintercept, label, xrg = xrg2)
         
     if CRbounds:
         # Plot Cramér-Rao lower bounds for the estimation error.
@@ -273,6 +279,7 @@ def plot_err_evol(which, estdatas, stat = "mean", yintercept = "fit",
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
 
+    plt.tight_layout()
     #print("> I would like to let you know I am plotting a figure."
     #      " [plot_err_vs_Nq]")
     
@@ -287,7 +294,7 @@ def arrange_legend(sort):
         plt.legend(sorted_handles, sorted_labels, loc="lower left", 
                     fontsize=12, framealpha=0.8)
     else:
-        plt.legend(loc="lower left", fontsize=12, framealpha=0.8)
+        plt.legend(loc="lower left", fontsize=20, framealpha=0.8)
     
 def get_logplot(ylabel, title = None, return_fig = False):
     fig, ax = plt.subplots(1,figsize=(10,6))
@@ -295,17 +302,21 @@ def get_logplot(ylabel, title = None, return_fig = False):
     #title = ("Scaling of the estimation error in a with the number of "
     #    "queries to A")
     xlabel = "Cumulative evolution time"
+    FONTSIZE = 28
+    SMALLERSIZE = 18
     
     if title is not None:
-        ax.set_title(title, fontsize=16, pad=25)
+        ax.set_title(title, fontsize=FONTSIZE, pad=25)
 
-    ax.set_xlabel(xlabel, fontsize=16, style="italic", labelpad=10)
-    ax.set_ylabel(ylabel, fontsize=16, style="italic", labelpad=10)
+    ax.set_xlabel(xlabel, fontsize=FONTSIZE)
+    ax.set_ylabel(ylabel, fontsize=FONTSIZE)
     
     plt.xscale('log'); plt.yscale('log')
     
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=SMALLERSIZE)
+    plt.yticks(fontsize=SMALLERSIZE)
+    ax.tick_params(labelsize=SMALLERSIZE, length=15, width=2.5) 
+    ax.tick_params(which = 'minor', labelsize=SMALLERSIZE, length=8, width=1.25) 
 
     from matplotlib.ticker import LogLocator
     ax.xaxis.set_minor_locator(LogLocator(base=10.0, subs='auto', numticks=10))
@@ -320,15 +331,15 @@ def get_logplot(ylabel, title = None, return_fig = False):
         return fig, ax
     return ax
 
-def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, 
-                       Nqmin =  0, #3e1, # noiseless: 3e1, noisy: 1e3
-                       Nqmax = None, # 1e7,# noiseless: 1e7, noisy: 1e6 
+def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None, xrg = None,
                        dxs = None, dys = None, errdisplay = "shaded"):
     assert errdisplay in ["bars", "shaded"]
     def getImage(path):
         return OffsetImage(plt.imread(path, format="png"), 
                            zoom=0.5 if iconpath=="jface.png" else 0.05)
-    
+     
+    xrg = (0, None) if xrg is None else xrg
+    Nqmin, Nqmax = xrg
     # id describes the algorithm(s), for e.g. naming figures.
     id = "_".join(Nq_dict.keys())
     for key in sorted(err_dict.keys(), reverse = True):
@@ -360,15 +371,22 @@ def plot_error_scatter(Nq_dict, err_dict, ax, iconpath = None,
             errorbar_plot(ax, x, y, dxs, dys, **kwargs)
         if errdisplay == "shaded":
             shaded_plot(ax, x, y, dys, **kwargs)
-    return id
+    xrg = (x[0], x[-1])
+    return id, xrg
 
 def plot_kwargs(key):
     return {"fmt": MARKER_SHAPES[key],
             #"markersize": MARKER_SIZES[key]/20,
             "color": MARKER_COLORS[key],
-            "label": label_from_key(key)}
+            "label": key}
 
-def errorbar_plot(ax, x, y, dxs, dys, xmin = 1e3, **kwargs):
+def left_minor_tick(x0, steps=2):
+    # Get minor tick steps steps "to the left of x0.
+    ticks = [10**n * i for n in range(-10, 10) for i in range(1, 10)]
+    ticks = sorted(t for t in ticks if t < x0)
+    return ticks[-steps] if len(ticks) >= steps else None
+
+def errorbar_plot(ax, x, y, dxs, dys, xmin = None, **kwargs):
     ax.errorbar(x, y, xerr = dxs, yerr = dys, markeredgecolor = 'black', 
                 markeredgewidth = 0.75, elinewidth=0.75, capsize=3, ecolor = 'black',
                 **kwargs)
@@ -382,9 +400,11 @@ def errorbar_plot(ax, x, y, dxs, dys, xmin = 1e3, **kwargs):
         return 
     
     # To avoid empty space to the left?... Not sure why it happens
+    
     xmax = ax.get_xlim()[1]
     if xmin is None: 
-        ax.set_xlim(left=max(0.1, 2*dxs[0]), right=xmax)
+        # ax.set_xlim(left=max(0.1, 2*dxs[0]), right=xmax)
+        ax.set_xlim(left=left_minor_tick(x[0]-dxs[0]), right=xmax)
     else: 
         ax.set_xlim(left=xmin, right=xmax)
 
@@ -433,29 +453,7 @@ def fix_key(key):
         return "aWES"
     else:
         return key
-
-def label_from_key(key):
-    '''
-    Clean keys up for proper caption.
-    '''
-    if key == "LIS" or key=="EIS":
-        return f"MLAE ({key})" 
-    elif key == "SQAE #2" or key == "SQAE #1" or key == "SQAE #0":
-        return "SAE"
-    elif key == "IQAE - chernoff":
-        return "IAE"
-    elif key == "mIQAE - chernoff":
-        return "mIAE"
-    elif key == "canonical":
-        return "QAE"
-    elif key=="WES":
-        return "WES"
-    elif key=="aWES":
-        return "aWES"
-    else:
-        # Write IQAE -> IAE, etc. for simplicity
-        return key.replace("QAE", "AE", 1)
-
+    
 def plot_CR_bounds(Nq_dict, lb_dict, ax, plot_fit):
     if len(lb_dict)==0:
         print("> I don't have any Cramer Rao bound evaluations to plot! "
@@ -475,7 +473,7 @@ def plot_CR_bounds(Nq_dict, lb_dict, ax, plot_fit):
             ax.plot(x, yfit, linewidth=1.5, linestyle="dashed",  
                     color="black", label=f"O(Nq^{round(m,2)})")
                 
-def plot_limits(Nq_dict, err_dict, ax, yintercept, label):
+def plot_limits(Nq_dict, err_dict, ax, yintercept, label, xrg = None):
     '''
     Plot the standard quantum and Heisenberg limits overposed with the data, 
     which describe the scaling of y (RMSE) wrt x (number of queries).
@@ -520,8 +518,8 @@ def plot_limits(Nq_dict, err_dict, ax, yintercept, label):
     
     for bound in bounds:
         power = -0.5 if bound=="sql" else -1
-        xrge = Nq_dict[key]
-        xs = logspace(xrge[0], xrge[-1], 1000)
+        xrg = Nq_dict[key] if xrg is None else xrg
+        xs = logspace(xrg[0], xrg[-1], 1000)
         
         if yintercept == "fit":
             y0 = xs[0]**m*np.exp(b)
@@ -552,7 +550,7 @@ def power_fit(xs, ys, label = "", seq=None):
     m, b = cf[0] 
     
     label = "RMSE" if len(label) == 0 else label
-    label = label.capitalize()
+    # label = label.capitalize()
     print(f"> {label} = O(Nq^{round(m,2)})", end = ";")
 
     print(f" offset = {round(b, 2)}.")
@@ -612,6 +610,7 @@ def plot_graph(xs, ys, startat0 = None, title="", xlabel="", ylabel=""):
     ax.grid()
     ax.grid(which='minor', alpha=0.2, linestyle='--')
     ax.grid(which='major', alpha=0.8)
+    plt.tight_layout()
     plt.show()
     safe_save_fig("graph")
 

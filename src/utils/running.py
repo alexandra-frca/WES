@@ -11,7 +11,7 @@ import numpy as np
 # import concurrent.futures
 
 from src.utils.files import PrintsToFile
-from src.algorithms.samplers import SMCsampler
+from src.utils.samplers import SMCsampler
 
 class Timed:
     '''
